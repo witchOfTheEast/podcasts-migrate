@@ -1,0 +1,49 @@
+#!/bin/bash
+
+## Get files from ftp
+
+# lftp mirror -c --include RX SOURCE
+
+## where RX like ''^.*\.(wav|mp3|docx)$''
+## may be better an exclude?
+## -c is continue if possible
+## Source one of
+#American Indian Living
+#Bible Talk
+#Healthy By Choice
+#Education Currents
+#Health and Longevity
+#Healthy By Choice
+#Heartwise Ministries
+#Homeschool Companion
+#LifeQuest - Authors
+#LifeQuest - Love For a Lifetime
+#LifeQuest Liberty
+#Message of Hope
+#Sink The Beagle
+#Someone Cares Prision Ministry
+
+declare -A src_dir_array
+
+src_server="ftp.lifetalk.net"
+dest_dir="/var/projects/ltr_podcasts/downloads/"
+inc_pattern="^.*\.(mp3|wav|docx)$"
+
+src_dir_array[bt]="Bible Talk"
+
+for src_dir in "${src_dir_array[@]}"; do
+    echo "Source directory selected: $src_dir";
+    #lftp -c "open ${src_server}; mirror --include ${inc_pattern} ${src_dir} ${dest_dir}"
+    #lftp -c "debug; open ${src_server}; get \"/${src_dir}/BT001.mp3\" -o ${dest_dir}"
+    #lftp -c "open ${src_server}; mirror -v --dry-run --include \"${inc_pattern}\" \"/${src_dir}\" \"${dest_dir}\""
+    lftp -c "open ${src_server}; mirror --dry-run -v --include \"${inc_pattern}\" \"/${src_dir}\" \"${dest_dir}\""
+    #lftp -c "open ${src_server}; ls /${src_dir}";
+done
+
+## Convert files to BITRATE
+
+## Manipulate the filenames (lowercase, etc.)
+
+## Put files to S3
+
+
