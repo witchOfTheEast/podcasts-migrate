@@ -1,0 +1,307 @@
+#!/bin/bash
+
+## Shows that must be dealt with
+#American Indian Living
+#Bible Talk
+#Education Currents
+#Health and Longevity
+#Healthy By Choice
+#Healthy By Choice
+#Heartwise Ministries
+#Homeschool Companion
+#LifeQuest - Authors
+#LifeQuest - Love For a Lifetime
+#LifeQuest Liberty
+#Message of Hope
+#Sink The Beagle
+#Someone Cares Prision Ministry
+
+## filetypes ignore case
+# mp3
+# mp2
+# wav
+# aif
+# docx
+# doc
+
+declare -A src_dir_array
+
+project_dir="/var/projects/ltr_podcasts"
+
+script_dir="/var/projects/ltr_podcasts/scripts"
+
+logs_dir="/var/projects/ltr_podcasts/scripts/logs"
+
+script_name=$(basename "$0")
+logfile="${logs_dir}/${script_name}_$(date +%Y%m%d_%H%M).log"
+touch $logfile
+
+## This would be changed to the download directory after testing
+parent_dir="${project_dir}/testing"
+#parent_dir="${project_dir}/downloads"
+converted_dest_dir="${project_dir}/converted/"
+
+inc_pattern="^.*\.(mp3|mp2|wav|docx|doc|aif|MP3|MP2|WAV|DOCX|DOC|AIF)$"
+
+skipped_file="${logs_dir}/skipped"
+
+if [[ -f "$skipped_file" ]]; then
+    mv "$skipped_file" "${skipped_file}_$(date +%Y%m%d_$H%M)"
+fi
+
+touch "$skipped_file"
+
+echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$skipped_file"
+
+expected_file="${logs_dir}/expected"
+
+if [[ -f "$expected_file" ]]; then
+    mv "$expected_file" "${expected_file}_$(date +%Y%m%d_$H%M)"
+fi
+
+touch "$expected_file"
+
+echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$expected_file"
+
+
+#src_dir_array[ail]="American Indian Living"
+src_dir_array[bt]="Bible Talk"
+#src_dir_array[ec]="Education Currents"
+#src_dir_array[hal]="Health and Longevity"
+#src_dir_array[hbc]="Healthy By Choice"
+#src_dir_array[hm]="Heartwise Ministries"
+#src_dir_array[hc]="Homeschool Companion"
+#src_dir_array[lqa]="LifeQuest - Authors"
+#src_dir_array[lqlfal]="LifeQuest - Love For a Lifetime"
+#src_dir_array[lql]="LifeQuest Liberty"
+#src_dir_array[moh]="Message of Hope"
+#src_dir_array[stb]="Sink The Beagle"
+#src_dir_array[scpm]="Someone Cares Prison Ministry"
+
+skip_file() {
+    ## Arguments:
+    ## $1 -> $src_file
+    src_file="$1"
+    #echo "skip_file()"
+
+    echo "Skipping..."
+    echo "$src_file" >> "$skipped_file"
+
+}
+
+get_filetype() {
+    # Arguements:
+    # 1 -> src_file
+    src_file="$1"
+    
+    #echo "get_filetype() - src_file is $src_file"
+
+    ## Does the filename contain a dot?
+    if [[ -f "$src_file" ]]; then
+        if [[ $src_file == *\.* ]]; then
+            file_extension=$(echo "$src_file" | awk 'BEGIN{FS=OFS="."}{ print $(NF) }')
+        
+        else
+            echo "$src_file doesn't seem to have a normal '.ext' file extension"
+            skip_file "$src_file" 
+        fi
+    else
+        echo "$src_file doesn't seem to exist"
+        skip_file "$src_file"
+    fi
+}
+
+get_output_file() {
+
+    #echo "get_output_file() - "
+    if [[ -f "$src_file" ]]; then
+        if [[ $src_file == *\.* ]]; then
+            #echo "$src_file" | awk 'BEGIN{FS=OFS="."}{ NF--; print }'
+
+            ## split on '/' and take only the last field
+            org_file_name="$(echo "$src_file" | awk 'BEGIN{FS=OFS="/"}{ print $(NF) }')"
+            
+            ## trim commas out 
+            org_file_name="$(echo "$org_file_name" | tr ',' ' ')"
+
+            ## split on '.', remove the final field (hopefully the .ext), take the last field (prev. 2nd to last) and add '.mp3'
+            file_name="$(echo "$src_file" | awk 'BEGIN{FS=OFS="."}{ NF--; print }' | awk 'BEGIN{FS=OFS="/"}{ print $(NF) ".mp3" }')"
+            
+            ## trim commas out
+            file_name="$(echo "$file_name" | tr ',' ' ')"
+            
+            file_sub_path="$(echo "$src_file" | awk 'BEGIN{FS=OFS="/"}{NF--; print }' | cut -d/ -f6- )"
+            
+            ## replace uppercase to lowercase
+            file_name="$(echo "$file_name" | tr '[:upper:]' '[:lower:]')"
+            
+            ## replaced " - " with " ", sometimes many times in a filename
+            file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /')"
+            file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /')"
+            file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /')"
+            file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /')"
+            
+            ## remove _(ok|final|remixed)
+
+            file_name="$(echo "$file_name" | sed -e 's/\_final//')"
+            file_name="$(echo "$file_name" | sed -e 's/\_ok//')"
+            file_name="$(echo "$file_name" | sed -e 's/\_remixed//')"
+
+            ## remove \ (final|ok|remixed). with '.'
+            file_name="$(echo "$file_name" | sed -e 's/\ final\./\./')"
+            file_name="$(echo "$file_name" | sed -e 's/\ remixed\./\./')"
+            file_name="$(echo "$file_name" | sed -e 's/\ ok\./\./')"
+
+            ## replace -{2,} with ' '
+            file_name="$(echo "$file_name" | sed -e 's/-\{2,\}/ /')"
+
+            ## remove ,
+            file_name="$(echo "$file_name" | sed -e 's/,//')"
+
+            ## replace \ {2,} with single ' '
+            file_name="$(echo "$file_name" | sed -e 's/\ \{2,\}/ /')"
+            
+            ## translate space to underscore
+            file_name="$(echo "$file_name" | tr ' ' '_')"
+        
+            ## replace _{2,} with '_' 
+            file_name="$(echo "$file_name" | sed -e 's/_\{2,\}/_/')"
+            
+
+            filetype="$file_extension"
+
+            converted_path="$converted_dest_dir$file_sub_path"
+            converted_filepath="$converted_path/$file_name"
+            echo "Expected:$converted_filepath"
+            
+            echo "$converted_filepath" >> "$expected_file"
+
+            if ! [[  -d "$converted_path" ]]; then
+                mkdir -p "$converted_path";
+            fi
+            
+        fi
+    fi
+
+}
+
+get_bitrate() {
+    # Arguements:
+    # 1 -> src_file
+    # 2 -> file_name
+    # 3 -> file_extension
+    src_file="$1"
+    file_name="$2"
+    file_extension="$3"
+    ffprobe "$src_file" 2>&1 | grep Stream | cut -d "," -f5 | cut -d" " -f2
+
+}
+
+convert_bitrate() {
+    # Arguements:
+    # 1 -> src_file
+    # 2 -> file_name
+    # 3 -> file_extension
+    src_file="$1"
+    file_name="$2"
+    file_extension="$3"
+
+    ## For a file that is already mp3 but the wrong bitrate
+    #echo "convert_bitrate()"
+    #echo "src_file: $src_file"
+    get_output_file "$src_file"
+    
+    output_file="$converted_filepath"
+
+    #ffmpeg -nostdin -y -i "$src_file" -codec:a libmp3lame -b:a 96k "$converted_filepath"
+
+}
+
+convert_to_mp3() {
+    # Arguements:
+    # 1 -> src_file
+    # 2 -> file_name
+    # 3 -> file_extension
+    src_file="$1"
+    file_name="$2"
+    file_extension="$3"
+
+    #echo "convert_to_mp3()"
+    #echo "file_name:$file_name"
+    #echo "file_extension:$file_extension"
+    #echo "converted_filepath:$converted_filepath"
+    get_output_file "$src_file"
+    echo "received: $converted_filepath"
+    #ffmpeg -y -i "$src_file" -codec:a libmp3lame -b:a 96k "$converted_filepath"
+
+}
+
+check_files() {
+    # Arguments:
+    # 1 -> src_dir
+    src_dir="$1"
+    #echo "check_files() - src_dir is $src_dir"
+
+    find "$src_dir" -type f -print0 |
+      while IFS= read -r -d $'\0' src_file; do
+          echo "check_files() - src_file $src_file"
+          unset converted_filepath
+          get_filetype "$src_file"
+          
+          case "$file_extension" in
+                mp3)
+                    echo -n ''
+                    ;;
+                mp2)
+                    cur_bitrate=$(get_bitrate "$src_file")
+                    if [[ "$cur_bitrate" != 96 ]]; then
+                        convert_bitrate "$src_file" "$file_name" "$file_extension"
+                    fi
+                    ;;
+                aif|wav)
+                    convert_to_mp3 "$src_file" "$file_name" "$file_extension"
+                    ;;
+                *)
+                    echo "filetype '$file_extension' unknown"
+                    echo "Skipping $src_file"
+                    skip_file "$src_file"
+            esac
+    done
+}
+
+
+
+main() {
+for src_dir in "${src_dir_array[@]}"; do
+    src_dir="$parent_dir/$src_dir/"
+    if [[ -d "$src_dir" ]]; then
+        echo "main() - src_dir is $src_dir";
+
+        check_files "$src_dir";
+    else
+        echo "main() - scr_dir as ''$src_dir'' is not valid"
+    fi
+done
+
+echo "**** Skipped files ****"
+cat "$skipped_file"
+cat "$expected_file"
+
+found_count=0
+while IFS='' read -r line; do
+    if ! [[ $line =~ "****" ]]; then
+        if [[ -f "$line" ]]; then
+            found_count=$((found_count + 1))
+        else
+            echo "ERROR: did not find -- $line" >> $logfile
+        fi
+    fi
+    
+done < "$expected_file"
+}
+
+main
+
+## Put files to S3
+
+
