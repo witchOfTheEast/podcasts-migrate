@@ -1,4 +1,5 @@
 .secret
 ltrftp.crt
 logs
-*.csv
+csv
+*.swp
