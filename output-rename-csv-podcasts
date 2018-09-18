@@ -1,6 +1,5 @@
 #!/bin/bash
 
-mycount=0
 declare -A src_dir_array
 declare -a skipped_files_array
 
@@ -46,7 +45,7 @@ src_dir_array[scpm]="Someone Cares Prison Ministry"
 
 
 get_output_file() {
-    mycount=$((mycount + 1))
+
     #echo "get_output_file() - "
     if [[ -f "$src_file" ]]; then
         if [[ $src_file == *\.* ]]; then
@@ -78,12 +77,12 @@ get_output_file() {
             ## remove _(ok|final|remixed)
 
             file_name="$(echo "$file_name" | sed -e 's/\_final//')"
+            #file_name="$(echo "$file_name" | sed -e 's/\_remixed//')"
             file_name="$(echo "$file_name" | sed -e 's/\_ok//')"
-            file_name="$(echo "$file_name" | sed -e 's/\_remixed//')"
 
             ## remove \ (final|ok|remixed). with '.'
             file_name="$(echo "$file_name" | sed -e 's/\ final\./\./')"
-            file_name="$(echo "$file_name" | sed -e 's/\ remixed\./\./')"
+            #file_name="$(echo "$file_name" | sed -e 's/\ remixed\./\./')"
             file_name="$(echo "$file_name" | sed -e 's/\ ok\./\./')"
 
             ## replace -{2,} with ' '
@@ -132,8 +131,13 @@ check_files() {
     done
 }
 main() {
-for src_dir in "${src_dir_array[@]}"; do
+
+
+for key in "${!src_dir_array[@]}"; do
+    src_dir="${src_dir_array[$key]}"
+
     src_dir="$parent_dir/$src_dir/"
+
     if [[ -d "$src_dir" ]]; then
         echo "main() - src_dir is $src_dir";
 
