@@ -46,7 +46,7 @@ inc_pattern="^.*\.(mp3|mp2|wav|docx|doc|aif|MP3|MP2|WAV|DOCX|DOC|AIF)$"
 skipped_file="${logs_dir}/skipped"
 
 if [[ -f "$skipped_file" ]]; then
-    mv "$skipped_file" "${skipped_file}_$(date +%Y%m%d_$H%M)"
+    mv "$skipped_file" "${skipped_file}_$(date +%Y%m%d_%H%M)"
 fi
 
 touch "$skipped_file"
@@ -56,7 +56,7 @@ echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$skipped_file"
 expected_file="${logs_dir}/expected"
 
 if [[ -f "$expected_file" ]]; then
-    mv "$expected_file" "${expected_file}_$(date +%Y%m%d_$H%M)"
+    mv "$expected_file" "${expected_file}_$(date +%Y%m%d_%H%M)"
 fi
 
 touch "$expected_file"
@@ -66,26 +66,28 @@ echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$expected_file"
 copied_file="${logs_dir}/copied"
 
 if [[ -f "$copied_file" ]]; then
-    mv "$copied_file" "${copied_file}_$(date +%Y%m%d_$H%M)"
+    mv "$copied_file" "${copied_file}_$(date +%Y%m%d_%H%M)"
 fi
 
 touch "$copied_file"
 
 echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$copied_file"
 
-src_dir_array[ail]="American Indian Living"
-src_dir_array[bt]="Bible Talk"
-src_dir_array[ec]="Education Currents"
-src_dir_array[hal]="Health and Longevity"
-src_dir_array[hbc]="Healthy By Choice"
+## Double hashes are converted
+## AIL had major conversion errors coming from ffmpeg. Further investigation needed
+#src_dir_array[ail]="American Indian Living"
+##src_dir_array[bt]="Bible Talk"
+##src_dir_array[ec]="Education Currents"
+##src_dir_array[hal]="Health and Longevity"
+##src_dir_array[hbc]="Healthy By Choice"
 src_dir_array[hm]="Heartwise Ministries"
-src_dir_array[hc]="Homeschool Companion"
-src_dir_array[lqa]="LifeQuest - Authors"
-src_dir_array[lqlfal]="LifeQuest - Love For a Lifetime"
-src_dir_array[lql]="LifeQuest Liberty"
-src_dir_array[moh]="Message of Hope"
-src_dir_array[stb]="Sink The Beagle"
-src_dir_array[scpm]="Someone Cares Prison Ministry"
+#src_dir_array[hc]="Homeschool Companion"
+#src_dir_array[lqa]="LifeQuest - Authors"
+#src_dir_array[lqlfal]="LifeQuest - Love For a Lifetime"
+##src_dir_array[lql]="LifeQuest Liberty"
+##src_dir_array[moh]="Message of Hope"
+#src_dir_array[stb]="Sink The Beagle"
+#src_dir_array[scpm]="Someone Cares Prison Ministry"
 
 skip_file() {
     # Arguments:
@@ -130,6 +132,9 @@ get_output_file() {
         if [[ $src_file == *\.* ]]; then
             #echo "$src_file" | awk 'BEGIN{FS=OFS="."}{ NF--; print }'
 
+            ######################################
+            #### BEGIN file_name manipulation ####
+            ######################################
             ## split on '/' and take only the last field
             org_file_name="$(echo "$src_file" | awk 'BEGIN{FS=OFS="/"}{ print $(NF) }')"
             
@@ -141,20 +146,62 @@ get_output_file() {
             
             ## trim commas out
             file_name="$(echo "$file_name" | tr ',' ' ')"
+
+            # en dash
+            # tr had trouble outputing weird characters with the en dash replacement
+            file_name="$(echo "$file_name" | sed -e "s/–/\ /g")"
+
+            # acute accent ´
+            # left single quote mark ‘
+            # right single quote mark ’
+            # single high reversed 9 quote mark ‛
+            # prime ′
+            # reversed prime ‵
+            ## cannot  make tr or sed deal with backtick\grave accent properly
+            # grave accent `
+
+            # singles
+            file_name="$(echo "$file_name" | sed -e "s/´/\ /g")"
+            file_name="$(echo "$file_name" | sed -e "s/‘/\ /g")"
+            file_name="$(echo "$file_name" | sed -e "s/’/\ /g")"
+            file_name="$(echo "$file_name" | sed -e "s/‛/\ /g")"
+            file_name="$(echo "$file_name" | sed -e "s/′/\ /g")"
+            file_name="$(echo "$file_name" | sed -e "s/‵/\ /g")"
+
+            # double acute accent ˝
+            # left double quote mark “
+            # right double quote mark ”
+            # doulbe high-reversed-9 quote mark ‟
+            # double prime ″
+            # reveresed double prime ‶
             
-            file_sub_path="$(echo "$src_file" | awk 'BEGIN{FS=OFS="/"}{NF--; print }' | cut -d/ -f6- )"
-            
+            # doubles
+            file_name="$(echo "$file_name" | sed -e 's/˝/\ /g')"
+            file_name="$(echo "$file_name" | sed -e 's/“/\ /g')"
+            file_name="$(echo "$file_name" | sed -e 's/”/\ /g')"
+            file_name="$(echo "$file_name" | sed -e 's/‟/\ /g')"
+            file_name="$(echo "$file_name" | sed -e 's/″/\ /g')"
+            file_name="$(echo "$file_name" | sed -e 's/‶/\ /g')"
+
             ## replace uppercase to lowercase
             file_name="$(echo "$file_name" | tr '[:upper:]' '[:lower:]')"
             
             ## replaced " - " with " ", sometimes many times in a filename
-            file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /')"
-            file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /')"
-            file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /')"
-            file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /')"
-            
-            ## remove _(ok|final|remixed)
+            file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /g')"
+            #file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /')"
+            #file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /')"
+            #file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /')"
 
+            ## remove dashes
+            file_name="$(echo "$file_name" | sed -e 's/-/\ /g')"
+
+            ## remove '.' not before 'm's 
+            file_name="$(echo "$file_name" | sed -e 's/\.[^m]//g')"
+
+            ## replace '.m.' with 'm', to leave .mp3 alone
+            file_name="$(echo "$file_name" | sed -e 's/\.m\./m/g')"
+
+            ## remove _(ok|final|remixed)
             file_name="$(echo "$file_name" | sed -e 's/\_final//')"
             #file_name="$(echo "$file_name" | sed -e 's/\_remixed//')"
             file_name="$(echo "$file_name" | sed -e 's/\_ok//')"
@@ -165,25 +212,125 @@ get_output_file() {
             file_name="$(echo "$file_name" | sed -e 's/\ ok\./\./')"
 
             ## replace -{2,} with ' '
-            file_name="$(echo "$file_name" | sed -e 's/-\{2,\}/ /')"
+            file_name="$(echo "$file_name" | sed -e 's/-\{2,\}/ /g')"
 
             ## remove ,
-            file_name="$(echo "$file_name" | sed -e 's/,//')"
+            file_name="$(echo "$file_name" | sed -e 's/,//g')"
 
             ## replace \ {2,} with single ' '
-            file_name="$(echo "$file_name" | sed -e 's/\ \{2,\}/ /')"
+            file_name="$(echo "$file_name" | sed -e 's/\ \{2,\}/ /g')"
             
             ## translate space to underscore
             file_name="$(echo "$file_name" | tr ' ' '_')"
         
             ## replace _{2,} with '_' 
-            file_name="$(echo "$file_name" | sed -e 's/_\{2,\}/_/')"
+            file_name="$(echo "$file_name" | sed -e 's/_\{2,\}/_/g')"
+            #file_name="$(echo "$file_name" | sed -e 's/__\+/_/')"
+
+            #### END file_name manipulation ####
+
+            ######################################
+            #### BEGIN dest. dir manipuation  ####
+            ######################################
+            old_file_sub_path="$(echo "$src_file" | awk 'BEGIN{FS=OFS="/"}{NF--; print }' | cut -d/ -f6- )"
+            file_sub_path="$(echo "$src_file" | awk 'BEGIN{FS=OFS="/"}{NF--; print }' | cut -d/ -f7- )"
+            file_sub_path="$key/$file_sub_path"
+
+            ## trim commas out
+            file_sub_path="$(echo "$file_sub_path" | tr ',' ' ')"
             
+            ## trim en dash out
+            file_sub_path="$(echo "$file_sub_path" | tr '–' ' ')"
+            
+            ## replace uppercase to lowercase
+            file_sub_path="$(echo "$file_sub_path" | tr '[:upper:]' '[:lower:]')"
+            
+            ## replaced " - " with " ", sometimes many times in a filename
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/\ -\ /\ /g')"
+            #file_sub_path="$(echo "$file_sub_path" | sed -e 's/\ -\ /\ /')"
+            #file_sub_path="$(echo "$file_sub_path" | sed -e 's/\ -\ /\ /')"
+            #file_sub_path="$(echo "$file_sub_path" | sed -e 's/\ -\ /\ /')"
+
+            ## remove dashes
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/-/\ /g')"
+
+            # en dash
+            # tr had trouble outputing weird characters with the en dash replacement
+            file_sub_path="$(echo "$file_sub_path" | sed -e "s/–/\ /g")"
+
+            # acute accent ´
+            # left single quote mark ‘
+            # right single quote mark ’
+            # single high reversed 9 quote mark ‛
+            # prime ′
+            # reversed prime ‵
+            ## cannot  make tr or sed deal with backtick\grave accent properly
+            # grave accent `
+
+            # singles
+            file_sub_path="$(echo "$file_sub_path" | sed -e "s/´/\ /g")"
+            file_sub_path="$(echo "$file_sub_path" | sed -e "s/‘/\ /g")"
+            file_sub_path="$(echo "$file_sub_path" | sed -e "s/’/\ /g")"
+            file_sub_path="$(echo "$file_sub_path" | sed -e "s/‛/\ /g")"
+            file_sub_path="$(echo "$file_sub_path" | sed -e "s/′/\ /g")"
+            file_sub_path="$(echo "$file_sub_path" | sed -e "s/‵/\ /g")"
+
+            # double acute accent ˝
+            # left double quote mark “
+            # right double quote mark ”
+            # doulbe high-reversed-9 quote mark ‟
+            # double prime ″
+            # reveresed double prime ‶
+            
+            # doubles
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/˝/\ /g')"
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/“/\ /g')"
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/”/\ /g')"
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/‟/\ /g')"
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/″/\ /g')"
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/‶/\ /g')"
+
+            ## remove '.' not before 'm's 
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/\.[^m]//g')"
+
+            ## replace '.m.' with 'm', to leave .mp3 alone
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/\.m\./m/g')"
+
+            ## remove _(ok|final|remixed)
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/\_final//')"
+            #file_sub_path="$(echo "$file_sub_path" | sed -e 's/\_remixed//')"
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/\_ok//')"
+
+            ## remove \ (final|ok|remixed). with '.'
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/\ final\./\./')"
+            #file_sub_path="$(echo "$file_sub_path" | sed -e 's/\ remixed\./\./')"
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/\ ok\./\./')"
+
+            ## replace -{2,} with ' '
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/-\{2,\}/ /g')"
+
+            ## remove ,
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/,//g')"
+
+            ## replace \ {2,} with single ' '
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/\ \{2,\}/ /g')"
+            
+            ## translate space to underscore
+            file_sub_path="$(echo "$file_sub_path" | tr ' ' '_')"
+        
+            ## replace _{2,} with '_' 
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/_\{2,\}/_/g')"
+
+            #### END dest. dir manipuation  ####
+
+            #echo "src_file: $src_file"
+            #echo "old_sub_path: $old_file_sub_path"
+            #echo "sub_path: $file_sub_path"
 
             filetype="$file_extension"
 
             converted_path="$converted_dest_dir$file_sub_path"
-            converted_filepath="$converted_path/$file_name"
+            converted_filepath="$converted_path$file_name"
             
             echo "$converted_filepath" >> "$expected_file"
 
@@ -191,8 +338,15 @@ get_output_file() {
                 mkdir -p "$converted_path";
             fi
             
+        else
+            echo "$src_file doesn't seem to have a normal '.ext' file extension"
+            skip_file "$src_file" "bad filename"
         fi
+    else
+        echo "$src_file doesn't seem to exist"
+        skip_file "$src_file" "src not found"
     fi
+    
 
 }
 
@@ -245,7 +399,7 @@ convert_bitrate() {
     
     #echo "test: fake converting bit rate"
     #echo "would write $converted_filepath"
-    ffmpeg -nostdin -y -i "$src_file" -codec:a libmp3lame -b:a 96k "$converted_filepath"
+    ffmpeg -loglevel error -nostdin -y -i "$src_file" -codec:a libmp3lame -b:a 96k -map a "$converted_filepath" >> $logfile 2>&1    
 
 }
 
@@ -269,7 +423,7 @@ convert_to_mp3() {
     #echo "would write $converted_filepath"
 
 
-    ffmpeg -nostdin -y -i "$src_file" -codec:a libmp3lame -b:a 96k "$converted_filepath"
+    ffmpeg -loglevel error -nostdin -y -i "$src_file" -codec:a libmp3lame -b:a 96k -map a "$converted_filepath" >> $logfile 2>&1 
 
 }
 
@@ -277,6 +431,7 @@ check_files() {
     # Arguments:
     # 1 -> src_dir
     src_dir="$1"
+    key="$2"
     #echo "check_files() - src_dir is $src_dir"
 
     find "$src_dir" -type f -print0 |
@@ -340,6 +495,8 @@ check_files() {
 main() {
 echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$logfile"
 echo -e "**** Start of script ****" >> "$logfile"
+echo -e "ffmpeg loglevel set to ''errors only''"
+echo -e "do not expect further status updates until end of script"
 echo -e "Looking at these source directories:" >> "$logfile"
 
 for key in "${!src_dir_array[@]}"; do
@@ -355,28 +512,49 @@ for key in "${!src_dir_array[@]}"; do
     if [[ -d "$src_dir" ]]; then
         echo "main() - src_dir is $src_dir";
 
-        check_files "$src_dir";
+        check_files "$src_dir" "$key";
     else
         echo "main() - scr_dir as ''$src_dir'' is not valid"
     fi
 done
 
+    ## get_out_file() is writing the $converted_filepath to $expected_log
+    ## that we would use a list to check the actual files that are created 
+    ## against. However, check_files() currently calling that subroutine
+    ## in order to get $converted_filepath for a test; this results in two lines
+    ## written to the log file
+    ## using a uniq statement to account for this
+
 echo "**** Skipped files ****"
 cat "$skipped_file"
-echo "**** Expected files ****"
-cat "$expected_file"
+#echo "**** Expected files ****"
+#cat "$expected_file"
 
-found_count=0
-while IFS='' read -r line; do
-    if ! [[ $line =~ "****" ]]; then
-        if [[ -f "$line" ]]; then
-            found_count=$((found_count + 1))
-        else
-            echo "ERROR: did not find -- $line" >> $logfile
-        fi
-    fi
-    
-done < "$expected_file"
+
+## This should work? Works in a test file. 
+## No idea why found_count remains null
+#while IFS='' read -r line; do
+#    echo "FOUNDCOUNT $found_count"
+#    found_count=0
+#    if ! [[ $line =~ "****" ]]; then
+#        if [[ -f "$line" ]]; then
+#            ((found_count++))
+#        else
+#            echo "ERROR: did not find -- $line" >> $logfile
+#        fi
+#    fi
+#    
+#done < "$expected_file"
+#expected_num=$(cat $expected_file | grep -v "\*" | uniq | wc -l)
+#
+#
+#echo "Expected number of files: $expected_num"
+#echo "Found number of files: $found_count"
+#
+#if [[ $expected_num != $found_count ]]; then
+#    echo "Did not find the expected number of converted files. Please check the log: $logfile"
+#fi
+
 }
 
 main
