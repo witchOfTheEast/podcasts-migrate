@@ -51,6 +51,9 @@ get_output_file() {
         if [[ $src_file == *\.* ]]; then
             #echo "$src_file" | awk 'BEGIN{FS=OFS="."}{ NF--; print }'
 
+            ######################################
+            #### BEGIN file_name manipulation ####
+            ######################################
             ## split on '/' and take only the last field
             org_file_name="$(echo "$src_file" | awk 'BEGIN{FS=OFS="/"}{ print $(NF) }')"
             
@@ -63,19 +66,61 @@ get_output_file() {
             ## trim commas out
             file_name="$(echo "$file_name" | tr ',' ' ')"
             
-            file_sub_path="$(echo "$src_file" | awk 'BEGIN{FS=OFS="/"}{NF--; print }' | cut -d/ -f6- )"
+            # en dash
+            # tr had trouble outputing weird characters with the en dash replacement
+            file_name="$(echo "$file_name" | sed -e "s/–/\ /g")"
+
+            # acute accent ´
+            # left single quote mark ‘
+            # right single quote mark ’
+            # single high reversed 9 quote mark ‛
+            # prime ′
+            # reversed prime ‵
+            ## cannot  make tr or sed deal with backtick\grave accent properly
+            # grave accent `
+
+            # singles
+            file_name="$(echo "$file_name" | sed -e "s/´/\ /g")"
+            file_name="$(echo "$file_name" | sed -e "s/‘/\ /g")"
+            file_name="$(echo "$file_name" | sed -e "s/’/\ /g")"
+            file_name="$(echo "$file_name" | sed -e "s/‛/\ /g")"
+            file_name="$(echo "$file_name" | sed -e "s/′/\ /g")"
+            file_name="$(echo "$file_name" | sed -e "s/‵/\ /g")"
+
+            # double acute accent ˝
+            # left double quote mark “
+            # right double quote mark ”
+            # doulbe high-reversed-9 quote mark ‟
+            # double prime ″
+            # reveresed double prime ‶
             
+            # doubles
+            file_name="$(echo "$file_name" | sed -e 's/˝/\ /g')"
+            file_name="$(echo "$file_name" | sed -e 's/“/\ /g')"
+            file_name="$(echo "$file_name" | sed -e 's/”/\ /g')"
+            file_name="$(echo "$file_name" | sed -e 's/‟/\ /g')"
+            file_name="$(echo "$file_name" | sed -e 's/″/\ /g')"
+            file_name="$(echo "$file_name" | sed -e 's/‶/\ /g')"
+
             ## replace uppercase to lowercase
             file_name="$(echo "$file_name" | tr '[:upper:]' '[:lower:]')"
             
             ## replaced " - " with " ", sometimes many times in a filename
-            file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /')"
-            file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /')"
-            file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /')"
-            file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /')"
-            
-            ## remove _(ok|final|remixed)
+            file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /g')"
+            #file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /')"
+            #file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /')"
+            #file_name="$(echo "$file_name" | sed -e 's/\ -\ /\ /')"
 
+            ## remove dashes
+            file_name="$(echo "$file_name" | sed -e 's/-/\ /g')"
+
+            ## remove '.' not before 'm's 
+            file_name="$(echo "$file_name" | sed -e 's/\.[^m]//g')"
+
+            ## replace '.m.' with 'm', to leave .mp3 alone
+            file_name="$(echo "$file_name" | sed -e 's/\.m\./m/g')"
+
+            ## remove _(ok|final|remixed)
             file_name="$(echo "$file_name" | sed -e 's/\_final//')"
             #file_name="$(echo "$file_name" | sed -e 's/\_remixed//')"
             file_name="$(echo "$file_name" | sed -e 's/\_ok//')"
@@ -86,20 +131,120 @@ get_output_file() {
             file_name="$(echo "$file_name" | sed -e 's/\ ok\./\./')"
 
             ## replace -{2,} with ' '
-            file_name="$(echo "$file_name" | sed -e 's/-\{2,\}/ /')"
+            file_name="$(echo "$file_name" | sed -e 's/-\{2,\}/ /g')"
 
             ## remove ,
-            file_name="$(echo "$file_name" | sed -e 's/,//')"
+            file_name="$(echo "$file_name" | sed -e 's/,//g')"
 
             ## replace \ {2,} with single ' '
-            file_name="$(echo "$file_name" | sed -e 's/\ \{2,\}/ /')"
+            file_name="$(echo "$file_name" | sed -e 's/\ \{2,\}/ /g')"
             
             ## translate space to underscore
             file_name="$(echo "$file_name" | tr ' ' '_')"
         
             ## replace _{2,} with '_' 
-            file_name="$(echo "$file_name" | sed -e 's/_\{2,\}/_/')"
+            file_name="$(echo "$file_name" | sed -e 's/_\{2,\}/_/g')"
+            #file_name="$(echo "$file_name" | sed -e 's/__\+/_/')"
+
+            #### END file_name manipulation ####
+
+            ######################################
+            #### BEGIN dest. dir manipuation  ####
+            ######################################
+            old_file_sub_path="$(echo "$src_file" | awk 'BEGIN{FS=OFS="/"}{NF--; print }' | cut -d/ -f6- )"
+            file_sub_path="$(echo "$src_file" | awk 'BEGIN{FS=OFS="/"}{NF--; print }' | cut -d/ -f7- )"
+            file_sub_path="$key/$file_sub_path"
+
+            ## trim commas out
+            file_sub_path="$(echo "$file_sub_path" | tr ',' ' ')"
             
+            ## trim en dash out
+            file_sub_path="$(echo "$file_sub_path" | tr '–' ' ')"
+            
+            ## replace uppercase to lowercase
+            file_sub_path="$(echo "$file_sub_path" | tr '[:upper:]' '[:lower:]')"
+            
+            ## replaced " - " with " ", sometimes many times in a filename
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/\ -\ /\ /g')"
+            #file_sub_path="$(echo "$file_sub_path" | sed -e 's/\ -\ /\ /')"
+            #file_sub_path="$(echo "$file_sub_path" | sed -e 's/\ -\ /\ /')"
+            #file_sub_path="$(echo "$file_sub_path" | sed -e 's/\ -\ /\ /')"
+
+            ## remove dashes
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/-/\ /g')"
+
+            # en dash
+            # tr had trouble outputing weird characters with the en dash replacement
+            file_sub_path="$(echo "$file_sub_path" | sed -e "s/–/\ /g")"
+
+            # acute accent ´
+            # left single quote mark ‘
+            # right single quote mark ’
+            # single high reversed 9 quote mark ‛
+            # prime ′
+            # reversed prime ‵
+            ## cannot  make tr or sed deal with backtick\grave accent properly
+            # grave accent `
+
+            # singles
+            file_sub_path="$(echo "$file_sub_path" | sed -e "s/´/\ /g")"
+            file_sub_path="$(echo "$file_sub_path" | sed -e "s/‘/\ /g")"
+            file_sub_path="$(echo "$file_sub_path" | sed -e "s/’/\ /g")"
+            file_sub_path="$(echo "$file_sub_path" | sed -e "s/‛/\ /g")"
+            file_sub_path="$(echo "$file_sub_path" | sed -e "s/′/\ /g")"
+            file_sub_path="$(echo "$file_sub_path" | sed -e "s/‵/\ /g")"
+
+            # double acute accent ˝
+            # left double quote mark “
+            # right double quote mark ”
+            # doulbe high-reversed-9 quote mark ‟
+            # double prime ″
+            # reveresed double prime ‶
+            
+            # doubles
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/˝/\ /g')"
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/“/\ /g')"
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/”/\ /g')"
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/‟/\ /g')"
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/″/\ /g')"
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/‶/\ /g')"
+
+            ## remove '.' not before 'm's 
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/\.[^m]//g')"
+
+            ## replace '.m.' with 'm', to leave .mp3 alone
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/\.m\./m/g')"
+
+            ## remove _(ok|final|remixed)
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/\_final//')"
+            #file_sub_path="$(echo "$file_sub_path" | sed -e 's/\_remixed//')"
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/\_ok//')"
+
+            ## remove \ (final|ok|remixed). with '.'
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/\ final\./\./')"
+            #file_sub_path="$(echo "$file_sub_path" | sed -e 's/\ remixed\./\./')"
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/\ ok\./\./')"
+
+            ## replace -{2,} with ' '
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/-\{2,\}/ /g')"
+
+            ## remove ,
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/,//g')"
+
+            ## replace \ {2,} with single ' '
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/\ \{2,\}/ /g')"
+            
+            ## translate space to underscore
+            file_sub_path="$(echo "$file_sub_path" | tr ' ' '_')"
+        
+            ## replace _{2,} with '_' 
+            file_sub_path="$(echo "$file_sub_path" | sed -e 's/_\{2,\}/_/g')"
+
+            #### END dest. dir manipuation  ####
+
+            #echo "src_file: $src_file"
+            #echo "old_sub_path: $old_file_sub_path"
+            #echo "sub_path: $file_sub_path"
 
             echo "${org_file_name},${file_name},${file_sub_path}" >> "$csv_outfile"
 
@@ -152,5 +297,4 @@ echo "These files were skipped: ${skipped_files_array[@]}"
 
 
 main
-
 
