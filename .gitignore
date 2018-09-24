@@ -3,3 +3,5 @@ ltrftp.crt
 logs
 csv
 *.swp
+*logs
+needsResolved
