@@ -34,7 +34,7 @@
 declare -A src_dir_array
 
 script_name=$(basename "$0")
-logfile="/var/projects/ltr_podcasts/logs/${script_name}_$(date +%Y%m%d_%H%M).log"
+logfile="/var/projects/ltr_podcasts/logs/download/${script_name}_$(date +%Y%m%d_%H%M).log"
 
 src_server="ftp.lifetalk.net"
 dest_dir="/var/projects/ltr_podcasts/downloads/"

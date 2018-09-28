@@ -30,7 +30,7 @@ project_dir="/var/projects/ltr_podcasts"
 
 script_dir="/var/projects/ltr_podcasts/scripts"
 
-logs_dir="/var/projects/ltr_podcasts/scripts/logs"
+logs_dir="/var/projects/ltr_podcasts/scripts/logs/convert"
 
 script_name=$(basename "$0")
 logfile="${logs_dir}/${script_name}_$(date +%Y%m%d_%H%M).log"

@@ -4,7 +4,7 @@ declare -A src_dir_array
 declare -a skipped_files_array
 
 script_name=$(basename "$0")
-logfile="/var/projects/ltr_podcasts/logs/${script_name}_$(date +%Y%m%d_%H%M).log"
+logfile="/var/projects/ltr_podcasts/logs/output-rename-csv/${script_name}_$(date +%Y%m%d_%H%M).log"
 
 ## This would be changed to the download directory after testing
 #parent_dir="/var/projects/ltr_podcasts/testing"
