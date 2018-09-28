@@ -1,67 +1,77 @@
 #!/bin/bash
 
-declare -A dir_array
 
 project_dir="/var/projects/ltr_podcasts"
 
 script_dir="/var/projects/ltr_podcasts/scripts"
 
-logs_dir="/var/projects/ltr_podcasts/scripts/logs"
+logs_dir="/var/projects/ltr_podcasts/scripts/logs/upload"
 
 script_name=$(basename "$0")
-logfile="${logs_dir}/${script_name}_$(date +%Y%m%d_%H%M).log"
-touch $logfile
-
+#logfile="${logs_dir}/${script_name}_$(date +%Y%m%d_%H%M).log"
 ## This would be changed to the download directory after testing
 #parent_dir="${project_dir}/testing"
 #parent_dir="${project_dir}/downloads"
-converted_dir="${project_dir}/converted/"
+converted_dir="${project_dir}/converted"
 
 inc_pattern="^.*\.(mp3|mp2|wav|docx|doc|aif|MP3|MP2|WAV|DOCX|DOC|AIF)$"
+
 
 skipped_file="${logs_dir}/skipped"
 
 if [[ -f "$skipped_file" ]]; then
     mv "$skipped_file" "${skipped_file}_$(date +%Y%m%d_%H%M)"
 fi
-
-touch "$skipped_file"
-
-echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$skipped_file"
+#touch "$skipped_file"
+#echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$skipped_file"
 
 expected_file="${logs_dir}/expected"
-
 if [[ -f "$expected_file" ]]; then
     mv "$expected_file" "${expected_file}_$(date +%Y%m%d_%H%M)"
 fi
-
-touch "$expected_file"
-
-echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$expected_file"
+#touch "$expected_file"
+#echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$expected_file"
 
 copied_file="${logs_dir}/copied"
-
 if [[ -f "$copied_file" ]]; then
     mv "$copied_file" "${copied_file}_$(date +%Y%m%d_%H%M)"
 fi
+#touch "$copied_file"
+#echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$copied_file"
 
-touch "$copied_file"
-
-echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$copied_file"
-
-#dir_array[ail]="ail" #"American Indian Living"
-#dir_array[bt]="bt" #"Bible Talk"
-#dir_array[ec]="ec" #"Education Currents"
-#dir_array[hal]="hal" #"Health and Longevity"
-#dir_array[hbc]="hbc" #"Healthy By Choice"
-#dir_array[hm]="hm" #"Heartwise Ministries"
-#dir_array[hc]="hc" #"Homeschool Companion"
-#dir_array[lqa]="lqa" #"LifeQuest - Authors"
-#dir_array[lqlfal]="lqlfal" #"LifeQuest - Love For a Lifetime"
-#dir_array[lql]="lql" #"LifeQuest Liberty"
-#dir_array[moh]="moh" #"Message of Hope"
-#dir_array[stb]="stb" #"Sink The Beagle"
+declare -A dir_array
+## Comment/uncomment these elements to iterate and upload these shows
+dir_array[ail]="ail" #"American Indian Living"
+dir_array[bt]="bt" #"Bible Talk"
+dir_array[ec]="ec" #"Education Currents"
+dir_array[hal]="hal" #"Health and Longevity"
+## TODO
+## CHIP; create chip dir, move HBC and CHIP into it
+#dir_array[chip]="chip" #"Healthy By Choice"
+dir_array[hm]="hm" #"Heartwise Ministries"
+dir_array[hc]="hc" #"Homeschool Companion"
+dir_array[lqa]="lqa" #"LifeQuest - Authors"
+## LQLFAL is not needed
+dir_array[lql]="lql" #"LifeQuest Liberty"
+dir_array[moh]="moh" #"Message of Hope"
 #dir_array[scpm]="scpm" #"Someone Cares Prison Ministry"
+dir_array[stb]="stb" #"Sink The Beagle"
+
+declare -A s3_show_dir_array
+## The values in this array can be used to alter the show directory in the S3 Dest URL
+s3_show_dir_array[ail]="ail" #"American Indian Living"
+s3_show_dir_array[bt]="bt" #"Bible Talk"
+s3_show_dir_array[chip]="chip" #"Healthy By Choice"
+s3_show_dir_array[ec]="ec" #"Education Currents"
+s3_show_dir_array[hal]="hnl" #"Health and Longevity"
+s3_show_dir_array[hm]="hw" #"Heartwise Ministries"
+s3_show_dir_array[hc]="hsc" #"Homeschool Companion"
+s3_show_dir_array[lqa]="lq" #"LifeQuest - Authors"
+s3_show_dir_array[lql]="lql" #"LifeQuest Liberty"
+s3_show_dir_array[moh]="moh" #"Message of Hope"
+s3_show_dir_array[stb]="sb" #"Sink The Beagle"
+s3_show_dir_array[scpm]="scpm" #"Someone Cares Prison Ministry"
+
 
 skip_file() {
     # Arguments:
@@ -80,32 +90,28 @@ skip_file() {
 
 
 ## determine years of files
-get_year() {
+test_year() {
+    logfile="/var/projects/ltr_podcasts/scripts/logs/upload-podcasts"
     # Arguments:
-    # $1 -> src_file
-    ## testing
-    # $2 -> test_date
-    src_file="$1"
+    # $1 -> test_date
+
+    file_date="$1"
     cur_year="$(date +%Y)"
     tag_year=''
-    #echo "get_year() for $src_file" >> $logfile 2>&1 
 
-    ## testing
-    #file_date="$(eyeD3 -log-level errors "$src_file" >> $logfile 2>&1)"
-    file_date="$test_date"
     if [[ -z "$file_date" ]]; then
-        #echo "received empty date. Setting cur_year" >> $logfile 2>&1
+        echo "received: $file_date. Apparently empty. Setting cur_year" >> $logfile 2>&1
         received="BAD"
         tag_year="$cur_year"
     else
-        if [[ ${#file_date} -ge 4 ]]; then
-            #echo "received date is too short. Setting cur_year" >> $logfile 2>&1
+        if [[ ${#file_date} -lt 4 ]]; then
+            echo "received: $file_date. Too short. Setting cur_year" >> $logfile 2>&1
             received="BAD"
             tag_year=$"cur_year"
         else
             snip_four="$(echo "${file_date:0:4}")"
-            if [[ "$snip_four" =~ ^[^0-9]+$ ]]; then
-                #echo "recieved first four of date not digits. Setting cur_year" >> $logfile 2>&1
+            if ! [[ "$snip_four" =~ ^[0-9]{4}$ ]]; then
+                echo "took: $snip_four. Not digits. Setting cur_year" >> $logfile 2>&1
                 received="BAD"
                 tag_year="$cur_year"
             else
@@ -116,13 +122,13 @@ get_year() {
                 case "$first_char" in
                     2)
                         if [[ "$second_char" =~ ^[^0]$ ]]; then
-                            #echo "received invalid year. Setting cur_year" >> $logfile 2>&1
+                            echo "received: 2${second_char}XX. ${second_char} is invalid. Setting cur_year" >> $logfile 2>&1
                             received="BAD"
                             tag_year="$cur_year"
                         else
                             if [[ "$third_char" =~ ^[1]$ ]]; then
                                 if [[ "$fourth_char" =~ ^[^0-8]$ ]]; then
-                                    #echo "received invalid year. Setting cur_year" >> $logfile 2>&1
+                                    echo "received: 2${second_char}${third_char}${fourth_char}. ${fourth_char} is invalid year. Setting cur_year" >> $logfile 2>&1
                                     received="BAD"
                                     tag_year="$cur_year"
                                 else
@@ -130,7 +136,7 @@ get_year() {
                                     received="GOOD"
                                 fi
                             elif [[ "$third_char" =~ ^[^0]$ ]]; then
-                                    #echo "received invalid year. Setting cur_year" >> $logfile 2>&1
+                                    echo "received: 2${second_char}${third_char}X. ${third_char} is invalid. Setting cur_year" >> $logfile 2>&1
                                     received="BAD"
                                     tag_year="$cur_year"
                             else
@@ -140,8 +146,9 @@ get_year() {
                         fi
                         ;;
                     1) 
+                        echo "PASSED: first_char is 1 -> ${first_char}." >> $logfile
                         if [[ "$second_char" =~ ^[^8-9]$ ]]; then
-                            #echo "received invalid year. Setting cur_year" >> $logfile 2>&1
+                            echo "received 1${second_char}XX. ${second_char} is invalid. Setting cur_year" >> $logfile 2>&1
                             received="BAD"
                             tag_year="$cur_year"
                         else
@@ -150,7 +157,7 @@ get_year() {
                         fi
                         ;;
                     *)
-                        #echo "received invalid year. Setting cur_year" >> $logfile 2>&1
+                        echo "received: ${first_char}XXX. ${first_char} is invalid. Setting cur_year" >> $logfile 2>&1
                         received="BAD"
                         tag_year="$cur_year"
                         ;;
@@ -160,12 +167,30 @@ get_year() {
     fi
 
     ## testing
-    echo "$received:$tag_year"
+    #echo "$received:$tag_year"
+
+    echo "$tag_year"
 }
+
+get_year() {
+    ## Retrieve a date string from the ID3 tags
+    # Arguments:
+    # $1 -> src_file
+    eyeD3_return=$(eyeD3 --log-level error "$src_file")
+    date_from_file="$(echo "$eyeD3_return" | grep date | tr -d ' ' | awk 'BEGIN{FS=OFS=":"}{ print $2 }')"
+    echo "$date_from_file" 
+
+}
+
+## the test_dates array and following test_test_year() function can
+## be used to test the logic of the test_year() function for
+## correctly rejecting invalid years
+## must uncommment 'echo "$received:$tag_year"
 
 declare -A test_dates
 test_dates[abcd]="BAD"
 test_dates[1]="BAD"
+test_dates[123A]="BAD"
 test_dates[3000]="BAD"
 test_dates[2111-15-23]="BAD"
 test_dates[2020-03-04]="BAD"
@@ -181,12 +206,14 @@ test_dates[1999-18-81]="GOOD"
 test_dates[2009]="GOOD"
 test_dates[1810]="GOOD"
 
-test_get_year() {
+test_test_year() {
+     
     for key in "${!test_dates[@]}"; do
-        response="$(get_year "$key")"
+        response="$(test_year "$key")"
         received="$(echo "$response" | awk 'BEGIN{FS=OFS=":"}{ print $1 }')"
         received_year="$(echo "$response" | awk 'BEGIN{FS=OFS=":"}{ print $2 }')"
         expected="${test_dates[$key]}"
+        echo -e ""
 
         if [[ "$expected" == "$received" ]]; then
             echo "PASSED"
@@ -202,55 +229,119 @@ test_get_year() {
     done
     }
    
-    test_get_year
+compose_upload_path() {
+    # Arguments:
+    # $1 -> src_file
+    # $2 -> s3_show)dir
+    # $3 -> file_year
 
-        
+    src_file="$1"
+    s3_show_dir="$2"
+    file_year="$3"
 
-## determine folders
+    file_name="$(echo "$src_file" | awk 'BEGIN{FS=OFS="/"}{ print $(NF) }')"
+    #echo -e "\n$src_file\n$s3_show_dir\n$file_year"
 
-## upload
+    s3parts="ltrpodcasts"
+    upload_path="${s3parts}/${s3_show_dir}/${file_year}/${file_name}"
+    echo "$upload_path"
+}
 
-## output list of uploaded files
-
-copy_files() {
+upload_files() {
     # Arguments:
     # 1 -> src_dir
+    # 2 -> key
     src_dir="$1"
     key="$2"
-    #echo "check_files() - src_dir is $src_dir"
 
     find "$src_dir" -type f -print0 |
       while IFS= read -r -d $'\0' src_file; do
-          file_year="$(get_year "$src_file")"
+        
+        #echo "$key"
+        #echo "array:${s3_show_dir_array[@]}"
+        #echo "value:${s3_show_dir_array[$key]}"
+        ## retrieve date info from id3 tag
+        date_from_file="$(get_year "$src_file")"
 
+        ## use id3 tag date to get a valid year
+        file_year="$(test_year "$date_from_file")"
 
+        ## create destination
+
+        #echo "passing:"$file_year" "${s3_show_dir[$key]}""
+        #echo "$src_file"
+        upload_path="$(compose_upload_path "$src_file" "${s3_show_dir_array[$key]}" "$file_year")"
+        #echo "$upload_path"
+
+        ##  adding here s3://
+        modded_upload_path="s3://${upload_path}"
+
+        aws s3 cp --only-show-errors "$src_file" "$modded_upload_path" >> "$logfile"
+        aws_cmd_exit_status="$?"
+
+        site_hostname="https://s3.us-east-2.amazonaws.com"
+        url_for_output="${site_hostname}/${upload_path}"
+
+        if [[ $aws_cmd_exit_status == 0 ]]; then
+            echo "aws success: $src_file" >> $logfile
+            echo "${src_file},${url_for_output}" >> "$uploaded_file"
+        else 
+            echo "aws failed : $aws_cmd_exit_status : $src_file" >> $logfile
+        fi
+ 
 
 done
 
 }
 
+## upload
+
+## output list of uploaded files
+
 main() {
 
-    echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$logfile"
-    echo -e "**** Start of script ****" >> "$logfile"
-    echo -e "ffmpeg loglevel set to ''errors only''"
-    echo -e "do not expect further status updates until end of script"
-    echo -e "Looking at these source directories:" >> "$logfile"
 
+    ## Dumps the list of directories into the logfile
+    #for key in "${!dir_array[@]}"; do
+#        src_dir="${dir_array[$key]}"
+#        src_dir="$converted_dir/$src_dir"
+#    done
+
+    ## Processes each directory
     for key in "${!dir_array[@]}"; do
+
+        uploaded_file="${logs_dir}/uploaded_${key}"
+
+        if [[ -f "$uploaded_file" ]]; then
+            mv "$uploaded_file" "${uploaded_file}_$(date +%Y%m%d_%H%M)"
+        fi
+
+        touch "$uploaded_file"
+
+        echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$uploaded_file"
+
+        logfile="${logs_dir}/${script_name}_${key}"
+
+        if [[ -f "$logfile" ]]; then
+            rm "$logfile"
+        fi
+        touch $logfile
+        echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$logfile"
+
         src_dir="${dir_array[$key]}"
+
         echo "$src_dir" >> "$logfile"
-    done
+        echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$logfile"
+        echo -e "**** Start of script ****" >> "$logfile"
+        echo -e "Looking at these source directories:" >> "$logfile"
 
-    for key in "${!dir_array[@]}"; do
-        src_dir="${dir_array[$key]}"
+        src_dir="$converted_dir/$src_dir"
 
-        src_dir="$converted_dir/$src_dir/"
-
+        
         if [[ -d "$src_dir" ]]; then
-            echo "main() - src_dir is $src_dir";
+            #echo "main() - src_dir is $src_dir";
 
-            copy_files "$src_dir" "$key";
+           upload_files "$src_dir" "$key";
 
         else
             echo "main() - scr_dir as ''$src_dir'' is not valid"
@@ -259,3 +350,7 @@ main() {
 
 
 }
+main
+
+#echo "**** logfile ****"
+#cat $logfile
