@@ -139,17 +139,18 @@ test_year() {
                             fi
                         fi
                         ;;
-                    1) 
-                        echo "PASSED: first_char is 1 -> ${first_char}." >> $logfile
-                        if [[ "$second_char" =~ ^[^8-9]$ ]]; then
-                            echo "received 1${second_char}XX. ${second_char} is invalid. Setting cur_year" >> $logfile 2>&1
-                            received="BAD"
-                            tag_year="$cur_year"
-                        else
-                            tag_year="$snip_four"
-                            received="GOOD"
-                        fi
-                        ;;
+                    ## Uncomment these lines if we need to accept years before 2000
+                    #1) 
+                    #    echo "PASSED: first_char is 1 -> ${first_char}." >> $logfile
+                    #    if [[ "$second_char" =~ ^[^8-9]$ ]]; then
+                    #        echo "received 1${second_char}XX. ${second_char} is invalid. Setting cur_year" >> $logfile 2>&1
+                    #        received="BAD"
+                    #        tag_year="$cur_year"
+                    #    else
+                    #        tag_year="$snip_four"
+                    #        received="GOOD"
+                    #    fi
+                    #    ;;
                     *)
                         echo "received: ${first_char}XXX. ${first_char} is invalid. Setting cur_year" >> $logfile 2>&1
                         received="BAD"
@@ -241,13 +242,7 @@ done
 
 }
 
-## upload
-
-## output list of uploaded files
-
 main() {
-
-
     ## Dumps the list of directories into the logfile
     #for key in "${!dir_array[@]}"; do
 #        src_dir="${dir_array[$key]}"
@@ -273,6 +268,7 @@ main() {
             rm "$logfile"
         fi
         touch $logfile
+
         echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$logfile"
 
         src_dir="${dir_array[$key]}"
@@ -284,7 +280,6 @@ main() {
 
         src_dir="$converted_dir/$src_dir"
 
-        
         if [[ -d "$src_dir" ]]; then
             #echo "main() - src_dir is $src_dir";
 
@@ -295,8 +290,8 @@ main() {
         fi
     done
 
-
 }
+
 main
 
 #echo "**** logfile ****"
