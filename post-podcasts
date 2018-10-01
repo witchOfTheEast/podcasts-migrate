@@ -97,8 +97,9 @@ while IFS='' read -r line; do
             post_year=$( echo $post_date | egrep -o '[0-9]{4}' )
             #echo "this is just the year: $post_year"
 
-            podcast_name=$( eyeD3 --plugin=display -p "%a%" "$src_file" 2> /dev/null)
-            podcast_name_lcns=$( echo "$podcast_name" | sed -e 's/./\L&/g; s/ /-/g' )
+            #podcast_name=$( eyeD3 --plugin=display -p "%a%" "$src_file" 2> /dev/null)
+
+            podcast_name_lcns=$( echo "$post_album" | sed -e 's/./\L&/g; s/ /-/g' )
             #echo "podcast_name_lcns is: $podcast_name_lcns"
             taxonomy_child_term=$( echo "$post_year"-"$podcast_name_lcns" )
                     
@@ -161,7 +162,7 @@ while IFS='' read -r line; do
 
             #ssh "$whole_line"
 
-#            echo "FAKE wp_post" >> $logfile
+            #echo "FAKE wp_post" >> $logfile
             wp_post=$(ssh wp_cli_user@172.16.208.18 -i ~/id_wp_cli_user_rsa "wp post create --post_content=\"$post_description\" --post_title=\"$post_title\" --post_date=\"$post_date\" --post_status=publish --post_type=podcasts $wp_meta --porcelain --path=/var/www/html/lifetalk.net/public_html/" < /dev/null)
         #echo -e "\nwp_post is this: $wp_post\n"
 
