@@ -76,7 +76,7 @@ while IFS='' read -r line; do
             post_description=$( eyeD3 --plugin=display -p "%c%" "$src_file" 2> /dev/null)
             #Insure date is in the format:YYYY-MM-DD with a catch-all.
             #echo -e "\nactive date in question: $post_date"
-            echo $post_date | egrep -o '[0-9]{4}-[0-9]{2}-[0-9]{2}'
+            echo $post_date | egrep -q '[0-9]{4}-[0-9]{2}-[0-9]{2}'
             exitstatus=$?
 
             if [[ $exitstatus -ne 0 ]]; then
@@ -161,14 +161,14 @@ while IFS='' read -r line; do
 
             #ssh "$whole_line"
 
-            echo "FAKE wp_post" >> $logfile
-            #wp_post=$(ssh wp_cli_user@172.16.208.18 -i ~/id_wp_cli_user_rsa "wp post create --post_content=\"$post_description\" --post_title=\"$post_title\" --post_date=\"$post_date\" --post_status=publish --post_type=podcasts $wp_meta --porcelain --path=/var/www/html/lifetalk.net/public_html/" < /dev/null)
+#            echo "FAKE wp_post" >> $logfile
+            wp_post=$(ssh wp_cli_user@172.16.208.18 -i ~/id_wp_cli_user_rsa "wp post create --post_content=\"$post_description\" --post_title=\"$post_title\" --post_date=\"$post_date\" --post_status=publish --post_type=podcasts $wp_meta --porcelain --path=/var/www/html/lifetalk.net/public_html/" < /dev/null)
         #echo -e "\nwp_post is this: $wp_post\n"
 
         #echo "last $src_file"
         #Add taxonomy terms to new post.
-        echo "FAKE ssh" >> $logfile
-            #ssh wp_cli_user@172.16.208.18 -i ~/id_wp_cli_user_rsa "wp post term add $wp_post podcasts_cat $podcast_name_lcns $taxonomy_child_term  --path=/var/www/html/lifetalk.net/public_html/" < /dev/null
+        #echo "FAKE ssh" >> $logfile
+            ssh wp_cli_user@172.16.208.18 -i ~/id_wp_cli_user_rsa "wp post term add $wp_post podcasts_cat $podcast_name_lcns $taxonomy_child_term  --path=/var/www/html/lifetalk.net/public_html/" < /dev/null > /dev/null
             echo "$src_file" >> "$logfile"
         else
             echo "$src_file" >> "$skipped_file"
