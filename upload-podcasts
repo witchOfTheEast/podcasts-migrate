@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 project_dir="/var/projects/ltr_podcasts"
 
 script_dir="/var/projects/ltr_podcasts/scripts"
@@ -8,16 +7,15 @@ script_dir="/var/projects/ltr_podcasts/scripts"
 logs_dir="/var/projects/ltr_podcasts/scripts/logs/upload"
 
 script_name=$(basename "$0")
-#logfile="${logs_dir}/${script_name}_$(date +%Y%m%d_%H%M).log"
-## This would be changed to the download directory after testing
-#parent_dir="${project_dir}/testing"
-#parent_dir="${project_dir}/downloads"
+
 converted_dir="${project_dir}/converted"
 
 inc_pattern="^.*\.(mp3|mp2|wav|docx|doc|aif|MP3|MP2|WAV|DOCX|DOC|AIF)$"
 
-
 skipped_file="${logs_dir}/skipped"
+
+## In order to generate logs for each show during a single script execution
+## the primary log config happens within main()
 
 if [[ -f "$skipped_file" ]]; then
     mv "$skipped_file" "${skipped_file}_$(date +%Y%m%d_%H%M)"
@@ -72,7 +70,6 @@ s3_show_dir_array[moh]="moh" #"Message of Hope"
 s3_show_dir_array[stb]="sb" #"Sink The Beagle"
 s3_show_dir_array[scpm]="scpm" #"Someone Cares Prison Ministry"
 
-
 skip_file() {
     # Arguments:
     # $1 -> $src_file
@@ -87,9 +84,6 @@ skip_file() {
 
 }
 
-
-
-## determine years of files
 test_year() {
     logfile="/var/projects/ltr_podcasts/scripts/logs/upload-podcasts"
     # Arguments:
@@ -182,53 +176,6 @@ get_year() {
 
 }
 
-## the test_dates array and following test_test_year() function can
-## be used to test the logic of the test_year() function for
-## correctly rejecting invalid years
-## must uncommment 'echo "$received:$tag_year"
-
-declare -A test_dates
-test_dates[abcd]="BAD"
-test_dates[1]="BAD"
-test_dates[123A]="BAD"
-test_dates[3000]="BAD"
-test_dates[2111-15-23]="BAD"
-test_dates[2020-03-04]="BAD"
-test_dates[1b99-00-00]="BAD"
-test_dates[19ab-23-12]="BAD"
-test_dates[2019-23-12]="BAD"
-test_dates[2019-23-12]="BAD"
-test_dates[1700-23-12]="BAD"
-test_dates[2012-12-11]="GOOD"
-test_dates[2012-12]="GOOD"
-test_dates[2000-12-12]="GOOD"
-test_dates[1999-18-81]="GOOD"
-test_dates[2009]="GOOD"
-test_dates[1810]="GOOD"
-
-test_test_year() {
-     
-    for key in "${!test_dates[@]}"; do
-        response="$(test_year "$key")"
-        received="$(echo "$response" | awk 'BEGIN{FS=OFS=":"}{ print $1 }')"
-        received_year="$(echo "$response" | awk 'BEGIN{FS=OFS=":"}{ print $2 }')"
-        expected="${test_dates[$key]}"
-        echo -e ""
-
-        if [[ "$expected" == "$received" ]]; then
-            echo "PASSED"
-            echo "expected: $expected"
-            echo "received: $received"
-            echo "$key : $received_year"
-        else
-            echo "SOMETHING IS WRONG"
-            echo "expected: $expected"
-            echo "received: $received"
-            echo "$key : $received_year"
-        fi
-    done
-    }
-   
 compose_upload_path() {
     # Arguments:
     # $1 -> src_file
