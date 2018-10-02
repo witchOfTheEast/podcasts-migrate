@@ -162,6 +162,7 @@ get_output_file() {
 
             # singles
             file_name="$(echo "$file_name" | sed -e "s/´/\ /g")"
+            file_name="$(echo "$file_name" | sed -e "s/'/\ /g")"
             file_name="$(echo "$file_name" | sed -e "s/‘/\ /g")"
             file_name="$(echo "$file_name" | sed -e "s/’/\ /g")"
             file_name="$(echo "$file_name" | sed -e "s/‛/\ /g")"
@@ -269,6 +270,7 @@ get_output_file() {
 
             # singles
             file_sub_path="$(echo "$file_sub_path" | sed -e "s/´/\ /g")"
+            file_sub_path="$(echo "$file_sub_path" | sed -e "s/'/\ /g")"
             file_sub_path="$(echo "$file_sub_path" | sed -e "s/‘/\ /g")"
             file_sub_path="$(echo "$file_sub_path" | sed -e "s/’/\ /g")"
             file_sub_path="$(echo "$file_sub_path" | sed -e "s/‛/\ /g")"

@@ -19,7 +19,7 @@
 #for src_file in $(ls "$src_dir"); do
 
 
-script_name=$(basename "$0")
+script_name="$(basename "$0")"
 usage() {
     echo -e "Usage: ${script_name} /PATH/TO/OUTPUT_FILE_FROM_UPLOAD_SCRIPT\n"
     echo -e "expect file to be csv\nexpect each file line to have 2 fields\nexpect field 1 to be the full file path\nexpect filed 2 to be the upload url"
@@ -67,41 +67,42 @@ while IFS='' read -r line; do
         #echo -e "\nsrc_file is $src_file\n"
 
         #Create variables of ID3 tags.
-        post_title=$( eyeD3 --plugin=display -p "%t%" "$src_file" 2> /dev/null)
-        post_date=$( eyeD3 --plugin=display -p "%original-release-date%" "$src_file" 2> /dev/null)
-        post_album=$( eyeD3 --plugin=display -p "%A%" "$src_file" 2> /dev/null)
-        post_track_num=$(  eyeD3 --plugin=display -p "%n%" "$src_file" 2> /dev/null)   
+        post_title="$(eyeD3 --plugin=display -p "%t%" "$src_file" 2> /dev/null)"
+        post_date="$(eyeD3 --plugin=display -p "%original-release-date%" "$src_file" 2> /dev/null)"
+        post_album="$(eyeD3 --plugin=display -p "%A%" "$src_file" 2> /dev/null)"
+        post_track_num="$(eyeD3 --plugin=display -p "%n%" "$src_file" 2> /dev/null)"   
 
         if [[ -n "$post_title" ]] && [[ -n "$post_album" ]] && [[ -n "$post_track_num" ]] && [[ -n "$post_date" ]]; then
-            post_description=$( eyeD3 --plugin=display -p "%c%" "$src_file" 2> /dev/null)
+            post_description="$(eyeD3 --plugin=display -p "%c%" "$src_file" 2> /dev/null)"
             #Insure date is in the format:YYYY-MM-DD with a catch-all.
             #echo -e "\nactive date in question: $post_date"
             echo $post_date | egrep -q '[0-9]{4}-[0-9]{2}-[0-9]{2}'
-            exitstatus=$?
+            exitstatus="$?"
 
             if [[ $exitstatus -ne 0 ]]; then
                 #echo "$post_date didn't match accepted format"
-                    post_date=$( date "+%Y-%m-%d" )
+                    post_date="$(date "+%Y-%m-%d")"
                 else
                     #echo "format seemed okay. trying ''date'' on $post_date"
                 date "+%Y-%m-%d" -d "$post_date" > /dev/null  2>&1
-                date_exitstatus=$?
+                date_exitstatus="$?"
 
                     if [[ $date_exitstatus -eq 1 ]]; then
                         #echo "date seemed to think $post_date isn't a real date"
-                        post_date=$( date "+%Y-%m-%d" )
+                        post_date="$(date "+%Y-%m-%d")"
                     fi
             fi
             #echo "at the end, our date is: $post_date"
 
-            post_year=$( echo $post_date | egrep -o '[0-9]{4}' )
+            post_year="$(echo $post_date | egrep -o '[0-9]{4}')"
             #echo "this is just the year: $post_year"
 
-            #podcast_name=$( eyeD3 --plugin=display -p "%a%" "$src_file" 2> /dev/null)
+            post_artist="$(eyeD3 --plugin=display -p "%a%" "$src_file" 2> /dev/null)"
+            post_artist_lcns="$(echo "$post_artist" | sed -e 's/./\L&/g; s/ /-/g')"
 
-            podcast_name_lcns=$( echo "$post_album" | sed -e 's/./\L&/g; s/ /-/g' )
+            podcast_name_lcns="$( echo "$post_album" | sed -e 's/./\L&/g; s/ /-/g')"
             #echo "podcast_name_lcns is: $podcast_name_lcns"
-            taxonomy_child_term=$( echo "$post_year"-"$podcast_name_lcns" )
+            taxonomy_child_term="$(echo "$post_year"-"$podcast_name_lcns")"
                     
 
             #List of variables of podcast thumbnail images
@@ -113,12 +114,12 @@ while IFS='' read -r line; do
                     wp_thumbnail="1502"
                     ;; 
                 "chip")
-                wp_thumbnail="1668"
-                ;;
+                    wp_thumbnail="1668"
+                    ;;
                 "education-currents")
-                wp_thumbnail="1523"
-                ;;
-                "health-longevity")
+                    wp_thumbnail="1523"
+                    ;;
+                "health-and-longevity")
                     wp_thumbnail="1541"
                     ;;
                 "heartwise")
@@ -128,23 +129,24 @@ while IFS='' read -r line; do
                     wp_thumbnail="1547"
                     ;;
                 "lifequest")
-                wp_thumbnail="1572"
-                ;;
+                    wp_thumbnail="1572"
+                    ;;
                 "lifequest-liberty")
-                wp_thumbnail="1670"
-                ;;
+                    wp_thumbnail="1670"
+                    ;;
                 "message-of-hope")
-                wp_thumbnail="2063"
-                ;;
+                    wp_thumbnail="2063"
+                    ;;
                 "sink-the-beagle")
-                wp_thumbnail="1650"
-                ;;
+                    wp_thumbnail="1650"
+                    ;;
                 "someone-cares-prison-ministry")
-                wp_thumbnail="1613"
-                ;;
+                    wp_thumbnail="1613"
+                    ;;
                 *)
-                echo "Error! Name doesn't match!"
-                ;;
+                    echo "Error! Name doesn't match!"
+                    echo "Error! Name doesn't match!" >> $logfile
+                    ;;
             esac
 
             #echo $src_file
@@ -153,7 +155,7 @@ while IFS='' read -r line; do
     #        wp_meta=$( echo "--meta_input='{\"enclosure\":\""https://s3.us-east-2.amazonaws.com/ltrpodcasts/education-currents/2018/Godspeed-Voices-of-the-Reformation-David-Teems.mp3"\",\""_thumbnail_id"\":\""$wp_thumbnail"\"}'" )	
 
     ## randall modified wp_meta
-            wp_meta=$(echo "--meta_input='{\"enclosure\":\""$file_url"\",\""_thumbnail_id"\":\""$wp_thumbnail"\"}'")	
+            wp_meta="$(echo "--meta_input='{\"enclosure\":\""$file_url"\",\""_thumbnail_id"\":\""$wp_thumbnail"\"}'")"
 
             #SSH into dev server and create new post of podcast episode.
          #   echo "wp post create --post_content=\"$post_description\" --post_title=\"$post_title\" --post_date=\"$post_date\" --post_status=publish --post_type=podcasts $wp_meta --porcelain --path=/var/www/html/lifetalk.net/public_html/"
@@ -163,14 +165,23 @@ while IFS='' read -r line; do
             #ssh "$whole_line"
 
             #echo "FAKE wp_post" >> $logfile
-            wp_post=$(ssh wp_cli_user@172.16.208.18 -i ~/id_wp_cli_user_rsa "wp post create --post_content=\"$post_description\" --post_title=\"$post_title\" --post_date=\"$post_date\" --post_status=publish --post_type=podcasts $wp_meta --porcelain --path=/var/www/html/lifetalk.net/public_html/" < /dev/null)
+            wp_post="$(ssh wp_cli_user@172.16.208.18 -i ~/id_wp_cli_user_rsa "wp post create --post_content=\"$post_description\" --post_title=\"$post_title\" --post_date=\"$post_date\" --post_status=publish --post_type=podcasts $wp_meta --porcelain --path=/var/www/html/lifetalk.net/public_html/" < /dev/null)"
         #echo -e "\nwp_post is this: $wp_post\n"
 
         #echo "last $src_file"
         #Add taxonomy terms to new post.
         #echo "FAKE ssh" >> $logfile
-            ssh wp_cli_user@172.16.208.18 -i ~/id_wp_cli_user_rsa "wp post term add $wp_post podcasts_cat $podcast_name_lcns $taxonomy_child_term  --path=/var/www/html/lifetalk.net/public_html/" < /dev/null > /dev/null
+            if [[ "$podcast_name_lcns" == "message-of-hope" ]] || [[ "$podcast_name_lcns" == "chip" ]]; then
+
+                ssh wp_cli_user@172.16.208.18 -i ~/id_wp_cli_user_rsa "wp post term add $wp_post post_tag $post_artist_lcns --path=/var/www/html/lifetalk.net/public_html/" < /dev/null > /dev/null
+                ssh wp_cli_user@172.16.208.18 -i ~/id_wp_cli_user_rsa "wp post term add $wp_post podcasts_cat $podcast_name_lcns $taxonomy_child_term  --path=/var/www/html/lifetalk.net/public_html/" < /dev/null > /dev/null
+
+            else
+                ssh wp_cli_user@172.16.208.18 -i ~/id_wp_cli_user_rsa "wp post term add $wp_post podcasts_cat $podcast_name_lcns $taxonomy_child_term  --path=/var/www/html/lifetalk.net/public_html/" < /dev/null > /dev/null
+            fi
+
             echo "$src_file" >> "$logfile"
+
         else
             echo "$src_file" >> "$skipped_file"
         fi

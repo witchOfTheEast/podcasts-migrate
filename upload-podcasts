@@ -12,16 +12,9 @@ converted_dir="${project_dir}/converted"
 
 inc_pattern="^.*\.(mp3|mp2|wav|docx|doc|aif|MP3|MP2|WAV|DOCX|DOC|AIF)$"
 
-skipped_file="${logs_dir}/skipped"
 
 ## In order to generate logs for each show during a single script execution
 ## the primary log config happens within main()
-
-if [[ -f "$skipped_file" ]]; then
-    mv "$skipped_file" "${skipped_file}_$(date +%Y%m%d_%H%M)"
-fi
-#touch "$skipped_file"
-#echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$skipped_file"
 
 expected_file="${logs_dir}/expected"
 if [[ -f "$expected_file" ]]; then
@@ -38,28 +31,37 @@ fi
 #echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$copied_file"
 
 declare -A dir_array
-## Comment/uncomment these elements to iterate and upload these shows
+## Comment/uncomment these to select which directors the script will run on 
+## i.e. to select which shows to upload or not
+
 dir_array[ail]="ail" #"American Indian Living"
 dir_array[bt]="bt" #"Bible Talk"
 dir_array[ec]="ec" #"Education Currents"
 dir_array[hal]="hal" #"Health and Longevity"
-## TODO
-## CHIP; create chip dir, move HBC and CHIP into it
-#dir_array[chip]="chip" #"Healthy By Choice"
+dir_array[hbc]="hbc" #"Healthy By Choice"
+## chip shouldn't need to be explicitly run because it's already
+## a sub folder of hbc
+#dir_array[chip]="hbc/chip_health" #"Healthy By Choice"
 dir_array[hm]="hm" #"Heartwise Ministries"
 dir_array[hc]="hc" #"Homeschool Companion"
 dir_array[lqa]="lqa" #"LifeQuest - Authors"
 ## LQLFAL is not needed
 dir_array[lql]="lql" #"LifeQuest Liberty"
 dir_array[moh]="moh" #"Message of Hope"
-#dir_array[scpm]="scpm" #"Someone Cares Prison Ministry"
+dir_array[scpm]="scpm" #"Someone Cares Prison Ministry"
 dir_array[stb]="stb" #"Sink The Beagle"
 
 declare -A s3_show_dir_array
-## The values in this array can be used to alter the show directory in the S3 Dest URL
+## The values in this array can be used to alter the directory names in the S3 Dest URL for each show 
+
+## Chip and Healthy by Choice files are to be slightly re-arranged at the time of upload
+## converted has /hbc and /hbc/chip_health
+## on upload those should become /chip/(containing hbc*.mp3) and /chip/(chip*.mp3 from chip_health)
+s3_show_dir_array[hbc]="chip" # "Healthy by Choice" files are moved to chip
+s3_show_dir_array[chip]="chip" # "CHIP Health" filed moved out of chip_health into parent
+
 s3_show_dir_array[ail]="ail" #"American Indian Living"
 s3_show_dir_array[bt]="bt" #"Bible Talk"
-s3_show_dir_array[chip]="chip" #"Healthy By Choice"
 s3_show_dir_array[ec]="ec" #"Education Currents"
 s3_show_dir_array[hal]="hnl" #"Health and Longevity"
 s3_show_dir_array[hm]="hw" #"Heartwise Ministries"
@@ -70,6 +72,10 @@ s3_show_dir_array[moh]="moh" #"Message of Hope"
 s3_show_dir_array[stb]="sb" #"Sink The Beagle"
 s3_show_dir_array[scpm]="scpm" #"Someone Cares Prison Ministry"
 
+declare -A  s3_file_name_array
+## placeholder for later function pulling ls from s3
+## made associative for faster searching
+
 skip_file() {
     # Arguments:
     # $1 -> $src_file
@@ -79,7 +85,7 @@ skip_file() {
     skipped_reason="$2"
     #echo "skip_file()"
 
-    echo "Skipping..."
+    #echo "Skipping..."
     echo "[$skipped_reason] $src_file"  >>  "$skipped_file"
 
 }
@@ -161,9 +167,6 @@ test_year() {
         fi
     fi
 
-    ## testing
-    #echo "$received:$tag_year"
-
     echo "$tag_year"
 }
 
@@ -195,6 +198,7 @@ compose_upload_path() {
     echo "$upload_path"
 }
 
+
 upload_files() {
     # Arguments:
     # 1 -> src_dir
@@ -202,44 +206,77 @@ upload_files() {
     src_dir="$1"
     key="$2"
 
+    show_dir_on_s3="${s3_show_dir_array[$key]}"
+
+    s3_file_list="s3_file_list_${key}"
+
+    if [[ -f $s3_file_list ]]; then
+        echo "$s3_file_list found. Removing"
+        rm "$s3_file_list"
+    fi
+
+    touch s3_file_list || echo "failed to create $s3_file_list" >> $logfile
+    
+    ## pulling a file list from aws
+    aws s3 ls s3://ltrpodcasts/${show_dir_on_s3} --recursive > $s3_file_list 2>$logfile
+    
+    mycount=0
+    while IFS= read -r line; do
+        s3_file_name="$(echo "$line" | awk 'BEGIN{FS=OFS="/"}{ print $(NF) }')"
+
+        s3_file_name_array[${s3_file_name}]="${mycount}"
+        (( mycount++ ))
+
+    done < "$s3_file_list"
+
     find "$src_dir" -type f -print0 |
       while IFS= read -r -d $'\0' src_file; do
-        
-        #echo "$key"
-        #echo "array:${s3_show_dir_array[@]}"
-        #echo "value:${s3_show_dir_array[$key]}"
-        ## retrieve date info from id3 tag
-        date_from_file="$(get_year "$src_file")"
 
-        ## use id3 tag date to get a valid year
-        file_year="$(test_year "$date_from_file")"
+        file_name="$(echo "$src_file" | awk 'BEGIN{FS=OFS="/"}{ print $(NF) }')"
 
-        ## create destination
+        ## returns exit 0 if the array key as a non-zero sized element 
+        ## if the array key has been created above 
+        ## the filename existed in the list pulled from ls
+        ## if the key exists, the file is already on s3
+        ##    [[ -n "${s3_file_name_array["$file_name"]}" ]] && printf '%sfound\n' "$i"
 
-        #echo "passing:"$file_year" "${s3_show_dir[$key]}""
-        #echo "$src_file"
-        upload_path="$(compose_upload_path "$src_file" "${s3_show_dir_array[$key]}" "$file_year")"
-        #echo "$upload_path"
+        if [[ -n "${s3_file_name_array["$file_name"]}" ]]; then
+            skip_file "$src_file" "exists on s3"
+        else
 
-        ##  adding here s3://
-        modded_upload_path="s3://${upload_path}"
+            ## retrieve date info from id3 tag
+            date_from_file="$(get_year "$src_file")"
 
-        aws s3 cp --only-show-errors "$src_file" "$modded_upload_path" >> "$logfile"
-        aws_cmd_exit_status="$?"
+            ## use id3 tag date to get a valid year
+            file_year="$(test_year "$date_from_file")"
 
-        site_hostname="https://s3.us-east-2.amazonaws.com"
-        url_for_output="${site_hostname}/${upload_path}"
+            upload_path="$(compose_upload_path "$src_file" "${s3_show_dir_array[$key]}" "$file_year")"
+            echo "$upload_path"
 
-        if [[ $aws_cmd_exit_status == 0 ]]; then
-            echo "aws success: $src_file" >> $logfile
-            echo "${src_file},${url_for_output}" >> "$uploaded_file"
-        else 
-            echo "aws failed : $aws_cmd_exit_status : $src_file" >> $logfile
+            ##  adding here s3://
+            modded_upload_path="s3://${upload_path}"
+            
+
+            ## testing. Without this aws line, nothing gets uploaded
+            aws s3 cp --only-show-errors "$src_file" "$modded_upload_path" >> "$logfile"
+
+            aws_cmd_exit_status="$?"
+
+            site_hostname="https://s3.us-east-2.amazonaws.com"
+            url_for_output="${site_hostname}/${upload_path}"
+
+            if [[ $aws_cmd_exit_status == 0 ]]; then
+                echo "aws success: $src_file" >> $logfile
+                echo "${src_file},${url_for_output}" >> "$uploaded_file"
+            else 
+                echo "aws failed : $aws_cmd_exit_status : $src_file" >> $logfile
+            fi
         fi
- 
 
-done
 
+      done
+
+      rm "$s3_file_list"
 }
 
 main() {
@@ -262,6 +299,15 @@ main() {
 
         echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$uploaded_file"
 
+        skipped_file="${logs_dir}/skipped_${key}"
+        if [[ -f "$skipped_file" ]]; then
+            mv "$skipped_file" "${skipped_file}_$(date +%Y%m%d_%H%M)"
+        fi
+        touch "$skipped_file"
+        echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$skipped_file"
+
+        ## testing log file with no key
+        #logfile="${logs_dir}/${script_name}"
         logfile="${logs_dir}/${script_name}_${key}"
 
         if [[ -f "$logfile" ]]; then
