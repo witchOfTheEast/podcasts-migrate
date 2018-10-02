@@ -33,12 +33,28 @@
 
 declare -A src_dir_array
 
-script_name=$(basename "$0")
-logfile="/var/projects/ltr_podcasts/logs/download/${script_name}_$(date +%Y%m%d_%H%M).log"
+script_name="$(basename "$0")"
+
+project_dir="/var/projects/ltr_podcasts"
+
+script_dir="/var/projects/ltr_podcasts/scripts"
+
+logs_dir="/var/projects/ltr_podcasts/scripts/logs/download"
+
+
+logfile="${logs_dir}/${script_name}"
+
+if [[ -f "$logfile" ]]; then
+    rm "$logfile"
+fi
+touch $logfile
+
+echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$logfile"
+
 
 src_server="ftp.lifetalk.net"
 dest_dir="/var/projects/ltr_podcasts/downloads/"
-inc_pattern="^.*\.(mp3|mp2|wav|docx|doc|aif|MP3|MP2|WAV|DOCX|DOC|AIF)$"
+inc_pattern="^.*\.(mp3|mp2|wav|aif|MP3|MP2|WAV|AIF)$"
 
 #src_dir_array[ail]="American Indian Living"
 #src_dir_array[bt]="Bible Talk"
@@ -53,9 +69,6 @@ inc_pattern="^.*\.(mp3|mp2|wav|docx|doc|aif|MP3|MP2|WAV|DOCX|DOC|AIF)$"
 #src_dir_array[moh]="Message of Hope"
 #src_dir_array[stb]="Sink The Beagle"
 #src_dir_array[scpm]="Someone Cares Prison Ministry"
-
-
-logfile="/var/projects/ltr_podcasts/scripts/$(date +%Y%m%d_%H%M).log"
 
 for src_dir in "${src_dir_array[@]}"; do
     echo "Source directory selected: $src_dir";
