@@ -165,7 +165,7 @@ while IFS='' read -r line; do
             #ssh "$whole_line"
 
             #echo "FAKE wp_post" >> $logfile
-            wp_post="$(ssh wp_cli_user@172.16.208.18 -i ~/id_wp_cli_user_rsa "wp post create --post_content=\"$post_description\" --post_title=\"$post_title\" --post_date=\"$post_date\" --post_status=publish --post_type=podcasts $wp_meta --porcelain --path=/var/www/html/lifetalk.net/public_html/" < /dev/null)"
+            wp_post="$(ssh wp_cli_user@172.16.208.20 -i ~/id_wp_cli_user_rsa "wp post create --post_content=\"$post_description\" --post_title=\"$post_title\" --post_date=\"$post_date\" --post_status=publish --post_type=podcasts $wp_meta --porcelain --path=/var/www/html/lifetalk.net/public_html/" < /dev/null)"
         #echo -e "\nwp_post is this: $wp_post\n"
 
         #echo "last $src_file"
@@ -173,11 +173,11 @@ while IFS='' read -r line; do
         #echo "FAKE ssh" >> $logfile
             if [[ "$podcast_name_lcns" == "message-of-hope" ]] || [[ "$podcast_name_lcns" == "chip" ]]; then
 
-                ssh wp_cli_user@172.16.208.18 -i ~/id_wp_cli_user_rsa "wp post term add $wp_post post_tag $post_artist_lcns --path=/var/www/html/lifetalk.net/public_html/" < /dev/null > /dev/null
-                ssh wp_cli_user@172.16.208.18 -i ~/id_wp_cli_user_rsa "wp post term add $wp_post podcasts_cat $podcast_name_lcns $taxonomy_child_term  --path=/var/www/html/lifetalk.net/public_html/" < /dev/null > /dev/null
+                ssh wp_cli_user@172.16.208.20 -i ~/id_wp_cli_user_rsa "wp post term add $wp_post post_tag $post_artist_lcns --path=/var/www/html/lifetalk.net/public_html/" < /dev/null > /dev/null
+                ssh wp_cli_user@172.16.208.20 -i ~/id_wp_cli_user_rsa "wp post term add $wp_post podcasts_cat $podcast_name_lcns $taxonomy_child_term  --path=/var/www/html/lifetalk.net/public_html/" < /dev/null > /dev/null
 
             else
-                ssh wp_cli_user@172.16.208.18 -i ~/id_wp_cli_user_rsa "wp post term add $wp_post podcasts_cat $podcast_name_lcns $taxonomy_child_term  --path=/var/www/html/lifetalk.net/public_html/" < /dev/null > /dev/null
+                ssh wp_cli_user@172.16.208.20 -i ~/id_wp_cli_user_rsa "wp post term add $wp_post podcasts_cat $podcast_name_lcns $taxonomy_child_term  --path=/var/www/html/lifetalk.net/public_html/" < /dev/null > /dev/null
             fi
 
             echo "$src_file" >> "$logfile"
