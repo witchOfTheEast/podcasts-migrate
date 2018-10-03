@@ -41,20 +41,21 @@ script_dir="/var/projects/ltr_podcasts/scripts"
 
 logs_dir="/var/projects/ltr_podcasts/scripts/logs/download"
 
+debug_file="${logs_dir}/${script_name}_debug"
 
-logfile="${logs_dir}/${script_name}"
-
-if [[ -f "$logfile" ]]; then
-    rm "$logfile"
+if [[ -f "$debug_file" ]]; then
+    mv "$debug_file" "${debug_file}_$(date +%Y%m%d_%H%M)"
 fi
-touch $logfile
 
-echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$logfile"
+touch $debug_file
+
+echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$debug_file"
 
 
 src_server="ftp.lifetalk.net"
 dest_dir="/var/projects/ltr_podcasts/downloads/"
 inc_pattern="^.*\.(mp3|mp2|wav|aif|MP3|MP2|WAV|AIF)$"
+exclude_glob_pattern="LQ MP3 Files/"
 
 #src_dir_array[ail]="American Indian Living"
 #src_dir_array[bt]="Bible Talk"
@@ -63,25 +64,41 @@ inc_pattern="^.*\.(mp3|mp2|wav|aif|MP3|MP2|WAV|AIF)$"
 #src_dir_array[hbc]="Healthy By Choice"
 #src_dir_array[hm]="Heartwise Ministries"
 #src_dir_array[hc]="Homeschool Companion"
-#src_dir_array[lqa]="LifeQuest - Authors"
+src_dir_array[lqa]="LifeQuest - Authors"
+## we do not need to deal with LQLFAL, it is no longer running
 #src_dir_array[lqlfal]="LifeQuest - Love For a Lifetime"
 #src_dir_array[lql]="LifeQuest Liberty"
 #src_dir_array[moh]="Message of Hope"
 #src_dir_array[stb]="Sink The Beagle"
-#src_dir_array[scpm]="Someone Cares Prison Ministry"
+src_dir_array[scpm]="Someone Cares Prison Ministry"
 
-for src_dir in "${src_dir_array[@]}"; do
-    echo "Source directory selected: $src_dir";
-    #lftp -c "open ${src_server}; ls /${src_dir}";
-    #lftp -c "debug; open ${src_server}; get \"/${src_dir}/BT001.mp3\" -o ${dest_dir}"
-    #lftp -c "debug 3; open ${src_server}; mirror -P 5 --dry-run -v --include \"${inc_pattern}\" \"/${src_dir}\" \"${dest_dir}\""
-    lftp -c "debug 2; open ${src_server}; mirror --log=\"${logfile}\" -P 10 -v --include \"${inc_pattern}\" \"/${src_dir}\" \"${dest_dir}\"" >> ${logfile} 2>&1
+## this may not be iterating the way we want
+## also think mirror is truncated the logfile
+## may need to use $key and have the logfile be created within the for loop
+for key in "${!src_dir_array[@]}"; do
+
+    skipped_file="${logs_dir}/${script_name}_skipped_${key}"
+
+    if [[ -f "$skipped_file" ]]; then
+        mv "$skipped_file" "${skipped_file}_$(date +%Y%m%d_%H%M)"
+    fi
+    touch "$skipped_file"
+    echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$skipped_file"
+
+    logfile="${logs_dir}/${script_name}_${key}"
+
+    if [[ -f "$logfile" ]]; then
+        mv "$logfile" "${logfile}_$(date +%Y%m%d_%H%M)"
+    fi
+
+    touch "$logfile"
+
+    ## mirror eats this by truncating the logfile
+    echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$logfile"
+
+    src_dir="${src_dir_array[$key]}"
+
+    ## -n added to mirror selects ''only newer''. This would obviate -c for continue within the mirror command
+    lftp -c "debug -o \"${debug_file}\" 2; open ${src_server}; mirror -n --no-empty-dirs --log=\"${logfile}\" -P 10 -vvv --include \"${inc_pattern}\" --exclude-glob \"${exclude_glob_pattern}\" \"/${src_dir}\" \"${dest_dir}\"" >> ${logfile} 2>&1
+     
 done
-
-## Convert files to BITRATE
-
-## Manipulate the filenames (lowercase, etc.)
-
-## Put files to S3
-
-
