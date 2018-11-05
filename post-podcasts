@@ -100,12 +100,18 @@ while IFS='' read -r line; do
             post_artist="$(eyeD3 --plugin=display -p "%a%" "$src_file" 2> /dev/null)"
             post_artist_lcns="$(echo "$post_artist" | sed -e 's/./\L&/g; s/ /-/g')"
 
+            podcast_name_lcns=${podcast_name_lcns/&/and}
+            post_album=${post_album/&/and}
+            #echo $post_album
             podcast_name_lcns="$( echo "$post_album" | sed -e 's/./\L&/g; s/ /-/g')"
             #echo "podcast_name_lcns is: $podcast_name_lcns"
             taxonomy_child_term="$(echo "$post_year"-"$podcast_name_lcns")"
                     
 
             #List of variables of podcast thumbnail images
+            #echo $podcast_name_lcns
+            #postcast_test="$(echo "$postcast_name_lcns" | sed -e 's/-/and/g')"
+
             case $podcast_name_lcns in
                 "american-indian-living")
                     wp_thumbnail="1487"
@@ -144,7 +150,7 @@ while IFS='' read -r line; do
                     wp_thumbnail="1613"
                     ;;
                 *)
-                    echo "Error! Name doesn't match!"
+                    echo "Error! Name doesn't match! 1"
                     echo "Error! Name doesn't match!" >> $logfile
                     ;;
             esac

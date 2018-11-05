@@ -34,22 +34,22 @@ declare -A dir_array
 ## Comment/uncomment these to select which directors the script will run on 
 ## i.e. to select which shows to upload or not
 
-dir_array[ail]="ail" #"American Indian Living"
-dir_array[bt]="bt" #"Bible Talk"
-dir_array[ec]="ec" #"Education Currents"
+#dir_array[ail]="ail" #"American Indian Living"
+#dir_array[bt]="bt" #"Bible Talk"
+#dir_array[ec]="ec" #"Education Currents"
 dir_array[hal]="hal" #"Health and Longevity"
-dir_array[hbc]="hbc" #"Healthy By Choice"
+#dir_array[hbc]="hbc" #"Healthy By Choice"
 ## chip shouldn't need to be explicitly run because it's already
 ## a sub folder of hbc
 #dir_array[chip]="hbc/chip_health" #"Healthy By Choice"
-dir_array[hm]="hm" #"Heartwise Ministries"
-dir_array[hc]="hc" #"Homeschool Companion"
-dir_array[lqa]="lqa" #"LifeQuest - Authors"
+#dir_array[hm]="hm" #"Heartwise Ministries"
+#dir_array[hc]="hc" #"Homeschool Companion"
+#dir_array[lqa]="lqa" #"LifeQuest - Authors"
 ## LQLFAL is not needed
-dir_array[lql]="lql" #"LifeQuest Liberty"
-dir_array[moh]="moh" #"Message of Hope"
-dir_array[scpm]="scpm" #"Someone Cares Prison Ministry"
-dir_array[stb]="stb" #"Sink The Beagle"
+#dir_array[lql]="lql" #"LifeQuest Liberty"
+#dir_array[moh]="moh" #"Message of Hope"
+#dir_array[scpm]="scpm" #"Someone Cares Prison Ministry"
+#dir_array[stb]="stb" #"Sink The Beagle"
 
 declare -A s3_show_dir_array
 ## The values in this array can be used to alter the directory names in the S3 Dest URL for each show 

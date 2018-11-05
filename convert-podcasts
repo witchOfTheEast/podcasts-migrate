@@ -1,29 +1,5 @@
 #!/bin/bash
 
-## Shows that must be dealt with
-#American Indian Living
-#Bible Talk
-#Education Currents
-#Health and Longevity
-#Healthy By Choice
-#Healthy By Choice
-#Heartwise Ministries
-#Homeschool Companion
-#LifeQuest - Authors
-#LifeQuest - Love For a Lifetime
-#LifeQuest Liberty
-#Message of Hope
-#Sink The Beagle
-#Someone Cares Prision Ministry
-
-## filetypes ignore case
-# mp3
-# mp2
-# wav
-# aif
-# docx
-# doc
-
 declare -A src_dir_array
 
 project_dir="/var/projects/ltr_podcasts"
@@ -39,9 +15,10 @@ touch $logfile
 ## This would be changed to the download directory after testing
 #parent_dir="${project_dir}/testing"
 parent_dir="${project_dir}/downloads"
+
 converted_dest_dir="${project_dir}/converted"
 
-inc_pattern="^.*\.(mp3|mp2|wav|docx|doc|aif|MP3|MP2|WAV|DOCX|DOC|AIF)$"
+inc_pattern="^.*\.(mp3|mp2|wav|aif|MP3|MP2|WAV|AIF)$"
 
 skipped_file="${logs_dir}/skipped"
 
@@ -53,15 +30,17 @@ touch "$skipped_file"
 
 echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$skipped_file"
 
-expected_file="${logs_dir}/expected"
 
-if [[ -f "$expected_file" ]]; then
-    mv "$expected_file" "${expected_file}_$(date +%Y%m%d_%H%M)"
+converted_file="${logs_dir}/converted"
+
+if [[ -f "$converted_file" ]]; then
+    mv "$converted_file" "${converted_file}_$(date +%Y%m%d_%H%M)"
 fi
 
-touch "$expected_file"
+touch "$converted_file"
 
-echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$expected_file"
+echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$converted_file"
+
 
 copied_file="${logs_dir}/copied"
 
@@ -73,21 +52,19 @@ touch "$copied_file"
 
 echo -e "**** $(date +%Y%m%d_%H%M) ****" >> "$copied_file"
 
-## Double hashes are converted
-## AIL had major conversion errors coming from ffmpeg. Further investigation needed
-#src_dir_array[ail]="American Indian Living"
-##src_dir_array[bt]="Bible Talk"
-##src_dir_array[ec]="Education Currents"
-##src_dir_array[hal]="Health and Longevity"
-##src_dir_array[hbc]="Healthy By Choice"
-##src_dir_array[hm]="Heartwise Ministries"
-##src_dir_array[hc]="Homeschool Companion"
-src_dir_array[lqa]="LifeQuest - Authors"
+src_dir_array[ail]="American Indian Living"
+#src_dir_array[bt]="Bible Talk"
+#src_dir_array[ec]="Education Currents"
+#src_dir_array[hal]="Health and Longevity"
+#src_dir_array[hbc]="Healthy By Choice"
+#src_dir_array[hm]="Heartwise Ministries"
+#src_dir_array[hc]="Homeschool Companion"
+#src_dir_array[lqa]="LifeQuest - Authors"
 ## Not required #src_dir_array[lqlfal]="LifeQuest - Love For a Lifetime"
-##src_dir_array[lql]="LifeQuest Liberty"
-##src_dir_array[moh]="Message of Hope"
-##src_dir_array[stb]="Sink The Beagle"
-##src_dir_array[scpm]="Someone Cares Prison Ministry"
+#src_dir_array[lql]="LifeQuest Liberty"
+#src_dir_array[moh]="Message of Hope"
+#src_dir_array[stb]="Sink The Beagle"
+#src_dir_array[scpm]="Someone Cares Prison Ministry"
 
 skip_file() {
     # Arguments:
@@ -98,7 +75,7 @@ skip_file() {
     skipped_reason="$2"
     #echo "skip_file()"
 
-    echo "Skipping..."
+    #echo "Skipping..."
     echo "[$skipped_reason] $src_file"  >>  "$skipped_file"
 
 }
@@ -120,7 +97,7 @@ get_filetype() {
             skip_file "$src_file" "bad filename"
         fi
     else
-        echo "$src_file doesn't seem to exist"
+        #echo "$src_file doesn't seem to exist"
         skip_file "$src_file" "src not found"
     fi
 }
@@ -334,7 +311,6 @@ get_output_file() {
             converted_path="$converted_dest_dir/$file_sub_path"
             converted_filepath="$converted_path/$file_name"
             
-            echo "$converted_filepath" >> "$expected_file"
 
             if ! [[  -d "$converted_path" ]]; then
                 mkdir -p "$converted_path";
@@ -345,7 +321,7 @@ get_output_file() {
             skip_file "$src_file" "bad filename"
         fi
     else
-        echo "$src_file doesn't seem to exist"
+        #echo "$src_file doesn't seem to exist"
         skip_file "$src_file" "src not found"
     fi
     
@@ -377,9 +353,16 @@ copy_to_dest() {
 
     get_output_file "$src_file"
     echo "COPYING: $src_file to $converted_filepath"
+    
+    if [[ -f "$converted_filepath" ]]; then
+        skip_file "$converted_filepath" "exists:"
+    else
 
-    cp "$src_file" "$converted_filepath"
-    echo "$src_file" >> "$copied_file"
+        cp "$src_file" "$converted_filepath"
+        echo "$src_file" >> "$copied_file"
+        echo "$converted_filepath" >> "$converted_file"
+    fi
+
 
 }
 
@@ -399,10 +382,16 @@ convert_bitrate() {
     #echo "convert_bitrate() - "
     get_output_file "$src_file"
     
-    #echo "test: fake converting bit rate"
-    #echo "would write $converted_filepath"
-    ffmpeg -loglevel error -nostdin -y -i "$src_file" -codec:a libmp3lame -b:a 96k -map a "$converted_filepath" >> $logfile 2>&1    
+    if [[ -f "$converted_filepath" ]]; then
+        skip_file "$converted_filepath" "exists:"
+    else
 
+        #echo "test: fake converting bit rate"
+        #echo "would write $converted_filepath"
+        ffmpeg -loglevel error -nostdin -y -i "$src_file" -codec:a libmp3lame -b:a 96k -map a "$converted_filepath" >> $logfile 2>&1    
+
+        echo "$converted_filepath" >> "$converted_file"
+    fi
 }
 
 convert_to_mp3() {
@@ -421,11 +410,17 @@ convert_to_mp3() {
 
     get_output_file "$src_file"
     
-    #echo "test: fake convert $file_extension to MP3"
-    #echo "would write $converted_filepath"
+    if [[ -f "$converted_filepath" ]]; then
+        skip_file "$converted_filepath" "exists:"
+    else
 
+        #echo "test: fake convert $file_extension to MP3"
+        #echo "would write $converted_filepath"
+        ffmpeg -loglevel error -nostdin -y -i "$src_file" -codec:a libmp3lame -b:a 96k -map a "$converted_filepath" >> $logfile 2>&1 
 
-    ffmpeg -loglevel error -nostdin -y -i "$src_file" -codec:a libmp3lame -b:a 96k -map a "$converted_filepath" >> $logfile 2>&1 
+        echo "$converted_filepath" >> "$converted_file"
+    fi
+
 
 }
 
@@ -451,7 +446,7 @@ check_files() {
 
           if [[ -f "$converted_filepath" ]]; then
 
-              echo "$converted_filepath already exists"
+              #echo "$converted_filepath already exists"
               skip_file "$src_file" "dest exists"
 
           else
@@ -527,8 +522,8 @@ done
     ## written to the log file
     ## using a uniq statement to account for this
 
-echo "**** Skipped files ****"
-cat "$skipped_file"
+#echo "**** Skipped files ****"
+#cat "$skipped_file"
 #echo "**** Expected files ****"
 #cat "$expected_file"
 
